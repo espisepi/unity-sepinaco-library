@@ -62,6 +62,7 @@ public class ScriptVideoclipsManager : MonoBehaviour
     private Vector2 scrollPosition;
 
     private int cachedRendererCount;
+    private ScriptObjectsManager objectsManager;
 
     private GUIStyle boxStyle;
     private GUIStyle titleStyle;
@@ -102,6 +103,10 @@ public class ScriptVideoclipsManager : MonoBehaviour
 
         if (replaceTexturesOnStart)
             ReplaceSceneTextures();
+
+        objectsManager = FindObjectOfType<ScriptObjectsManager>();
+        if (objectsManager != null)
+            objectsManager.OnTargetStateChanged += OnObjectTargetStateChanged;
     }
 
     void Update()
@@ -174,6 +179,31 @@ public class ScriptVideoclipsManager : MonoBehaviour
         }
 
         cachedRendererCount = renderers.Length;
+    }
+
+    void OnObjectTargetStateChanged(GameObject obj, bool active)
+    {
+        if (!active || obj == null || videoMaterial == null) return;
+
+        Renderer[] renderers = obj.GetComponentsInChildren<Renderer>(true);
+        foreach (Renderer rend in renderers)
+        {
+            if (originalMaterials.ContainsKey(rend)) continue;
+
+            Material[] copy = new Material[rend.sharedMaterials.Length];
+            System.Array.Copy(rend.sharedMaterials, copy, copy.Length);
+            originalMaterials[rend] = copy;
+
+            Material[] mats = new Material[copy.Length];
+            for (int i = 0; i < mats.Length; i++)
+                mats[i] = videoMaterial;
+            videoMaterialArrays[rend] = mats;
+
+            if (texturesReplaced)
+                rend.sharedMaterials = mats;
+        }
+
+        cachedRendererCount = FindObjectsOfType<Renderer>().Length;
     }
 
     void BuildVideoMaterialArrays()
@@ -372,6 +402,9 @@ public class ScriptVideoclipsManager : MonoBehaviour
 
     void OnDestroy()
     {
+        if (objectsManager != null)
+            objectsManager.OnTargetStateChanged -= OnObjectTargetStateChanged;
+
         if (renderTexture != null)
         {
             renderTexture.Release();

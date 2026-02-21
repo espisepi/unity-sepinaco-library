@@ -87,6 +87,8 @@ public class ScriptObjectsManager : MonoBehaviour
     private GUIStyle _selectedLabelStyle;
     private bool _stylesInitialized;
 
+    public event Action<GameObject, bool> OnTargetStateChanged;
+
     public int TargetCount => _targets.Length;
 
     public StartObjectsMode StartMode => _startMode;
@@ -148,7 +150,10 @@ public class ScriptObjectsManager : MonoBehaviour
         ObjectTarget entry = _targets[index];
         entry.isActive = active;
         if (entry.target != null)
+        {
             entry.target.SetActive(active);
+            OnTargetStateChanged?.Invoke(entry.target, active);
+        }
     }
 
     public void ShowAll() => SetAllInternal(true);
@@ -264,7 +269,10 @@ public class ScriptObjectsManager : MonoBehaviour
             ObjectTarget entry = _targets[i];
             entry.isActive = active;
             if (entry.target != null)
+            {
                 entry.target.SetActive(active);
+                OnTargetStateChanged?.Invoke(entry.target, active);
+            }
         }
     }
 
@@ -273,7 +281,10 @@ public class ScriptObjectsManager : MonoBehaviour
         for (int i = 0, len = _targets.Length; i < len; i++)
         {
             if (_targets[i].target != null)
+            {
                 _targets[i].target.SetActive(_targets[i].isActive);
+                OnTargetStateChanged?.Invoke(_targets[i].target, _targets[i].isActive);
+            }
         }
     }
 }
