@@ -62,7 +62,7 @@ public class ScriptPhysicsManager : MonoBehaviour
     public KeyCode disableAllKey = KeyCode.Q;
 
     [Tooltip("Tecla para alternar el collider del target seleccionado")]
-    public KeyCode toggleSelectedKey = KeyCode.R;
+    public KeyCode toggleSelectedKey = KeyCode.G;
 
     [Tooltip("Tecla para seleccionar el siguiente target")]
     public KeyCode nextTargetKey = KeyCode.X;
@@ -70,11 +70,22 @@ public class ScriptPhysicsManager : MonoBehaviour
     [Tooltip("Tecla para seleccionar el target anterior")]
     public KeyCode prevTargetKey = KeyCode.B;
 
+    [Header("Scroll del menú (solo funcionan con el menú abierto)")]
+    [Tooltip("Tecla para hacer scroll hacia arriba en el menú")]
+    public KeyCode scrollUpKey = KeyCode.UpArrow;
+
+    [Tooltip("Tecla para hacer scroll hacia abajo en el menú")]
+    public KeyCode scrollDownKey = KeyCode.DownArrow;
+
+    [Tooltip("Velocidad de scroll en píxeles por segundo")]
+    public float scrollSpeed = 200f;
+
     private static readonly Collider[] EmptyColliders = Array.Empty<Collider>();
     private bool _cacheReady;
 
     private bool _menuActive;
     private int _selectedIndex;
+    private Vector2 _scrollPosition;
 
     private GUIStyle _boxStyle;
     private GUIStyle _titleStyle;
@@ -127,6 +138,14 @@ public class ScriptPhysicsManager : MonoBehaviour
 
         if (Input.GetKeyDown(toggleSelectedKey))
             SetTargetState(_selectedIndex, !_targets[_selectedIndex].collidersEnabled);
+
+        if (Input.GetKey(scrollUpKey))
+            _scrollPosition.y -= scrollSpeed * Time.deltaTime;
+
+        if (Input.GetKey(scrollDownKey))
+            _scrollPosition.y += scrollSpeed * Time.deltaTime;
+
+        if (_scrollPosition.y < 0f) _scrollPosition.y = 0f;
     }
 
     // ───────────────────────── API pública (runtime) ─────────────────────────
@@ -218,16 +237,19 @@ public class ScriptPhysicsManager : MonoBehaviour
 
         int targetCount = _targets != null ? _targets.Length : 0;
         float lineHeight = 22f;
-        float headerHeight = 160f;
+        float headerHeight = 190f;
         float boxWidth = 380f;
-        float boxHeight = headerHeight + targetCount * lineHeight;
+        float contentHeight = headerHeight + targetCount * lineHeight;
+        float maxBoxHeight = Mathf.Min(contentHeight, Screen.height * 0.8f);
         float x = Screen.width - boxWidth - 10f;
         float y = 10f;
-        Rect boxRect = new Rect(x, y, boxWidth, boxHeight);
+        Rect boxRect = new Rect(x, y, boxWidth, maxBoxHeight);
 
         GUI.Box(boxRect, GUIContent.none, _boxStyle);
 
-        GUILayout.BeginArea(new Rect(x + 16, y + 12, boxWidth - 32, boxHeight - 24));
+        Rect areaRect = new Rect(x + 16, y + 12, boxWidth - 32, maxBoxHeight - 24);
+        GUILayout.BeginArea(areaRect);
+        _scrollPosition = GUILayout.BeginScrollView(_scrollPosition);
 
         GUILayout.Label("Physics Controls", _titleStyle);
         GUILayout.Space(10);
@@ -236,6 +258,7 @@ public class ScriptPhysicsManager : MonoBehaviour
         GUILayout.Label($"<b>[{disableAllKey}]</b>  Desactivar todos los colliders", _labelStyle);
         GUILayout.Label($"<b>[{toggleSelectedKey}]</b>  Alternar collider seleccionado", _labelStyle);
         GUILayout.Label($"<b>[{nextTargetKey}]</b> / <b>[{prevTargetKey}]</b>  Navegar targets", _labelStyle);
+        GUILayout.Label($"<b>[{scrollUpKey}]</b> / <b>[{scrollDownKey}]</b>  Scroll menú", _labelStyle);
         GUILayout.Space(8);
 
         for (int i = 0; i < targetCount; i++)
@@ -251,6 +274,7 @@ public class ScriptPhysicsManager : MonoBehaviour
         GUILayout.Space(4);
         GUILayout.Label($"<color=#888888>[{menuKey}] para cerrar</color>", _labelStyle);
 
+        GUILayout.EndScrollView();
         GUILayout.EndArea();
     }
 

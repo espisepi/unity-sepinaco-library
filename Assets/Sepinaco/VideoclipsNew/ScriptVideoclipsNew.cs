@@ -29,6 +29,16 @@ public class ScriptVideoclipsNew : MonoBehaviour
     [Tooltip("Tecla para cambiar al vídeo anterior")]
     public KeyCode previousVideoKey = KeyCode.LeftBracket;
 
+    [Header("Scroll del menú (solo funcionan con el menú abierto)")]
+    [Tooltip("Tecla para hacer scroll hacia arriba en el menú")]
+    public KeyCode scrollUpKey = KeyCode.UpArrow;
+
+    [Tooltip("Tecla para hacer scroll hacia abajo en el menú")]
+    public KeyCode scrollDownKey = KeyCode.DownArrow;
+
+    [Tooltip("Velocidad de scroll en píxeles por segundo")]
+    public float scrollSpeed = 200f;
+
     [Header("Estado inicial")]
     public bool replaceTexturesOnStart = true;
     public bool startMuted = false;
@@ -43,6 +53,7 @@ public class ScriptVideoclipsNew : MonoBehaviour
     private bool isMuted;
     private int currentVideoIndex;
     private bool menuActive;
+    private Vector2 scrollPosition;
 
     private GUIStyle boxStyle;
     private GUIStyle titleStyle;
@@ -97,6 +108,14 @@ public class ScriptVideoclipsNew : MonoBehaviour
 
         if (Input.GetKeyDown(previousVideoKey))
             PreviousVideo();
+
+        if (Input.GetKey(scrollUpKey))
+            scrollPosition.y -= scrollSpeed * Time.deltaTime;
+
+        if (Input.GetKey(scrollDownKey))
+            scrollPosition.y += scrollSpeed * Time.deltaTime;
+
+        if (scrollPosition.y < 0f) scrollPosition.y = 0f;
     }
 
     void StoreOriginalMaterials()
@@ -237,14 +256,17 @@ public class ScriptVideoclipsNew : MonoBehaviour
         InitStyles();
 
         float boxWidth = 340f;
-        float boxHeight = 230f;
+        float contentHeight = 260f;
+        float maxBoxHeight = Mathf.Min(contentHeight, Screen.height * 0.8f);
         float x = 10f;
         float y = 10f;
-        Rect boxRect = new Rect(x, y, boxWidth, boxHeight);
+        Rect boxRect = new Rect(x, y, boxWidth, maxBoxHeight);
 
         GUI.Box(boxRect, GUIContent.none, boxStyle);
 
-        GUILayout.BeginArea(new Rect(x + 16, y + 12, boxWidth - 32, boxHeight - 24));
+        Rect areaRect = new Rect(x + 16, y + 12, boxWidth - 32, maxBoxHeight - 24);
+        GUILayout.BeginArea(areaRect);
+        scrollPosition = GUILayout.BeginScrollView(scrollPosition);
 
         GUILayout.Label("Video Controls", titleStyle);
         GUILayout.Space(10);
@@ -257,11 +279,13 @@ public class ScriptVideoclipsNew : MonoBehaviour
         GUILayout.Label($"<b>[{toggleMuteKey}]</b>  Audio: {(isMuted ? "<color=#FF6666>Mute</color>" : "<color=#66FF66>On</color>")}", labelStyle);
         GUILayout.Label($"<b>[{nextVideoKey}]</b>  Siguiente vídeo", labelStyle);
         GUILayout.Label($"<b>[{previousVideoKey}]</b>  Vídeo anterior", labelStyle);
+        GUILayout.Label($"<b>[{scrollUpKey}]</b> / <b>[{scrollDownKey}]</b>  Scroll menú", labelStyle);
         GUILayout.Space(8);
         GUILayout.Label($"<b>Vídeo:</b> {videoName}  ({currentVideoIndex + 1}/{videoClips.Length})", labelStyle);
         GUILayout.Space(4);
         GUILayout.Label($"<color=#888888>[{menuKey}] para cerrar</color>", labelStyle);
 
+        GUILayout.EndScrollView();
         GUILayout.EndArea();
     }
 
