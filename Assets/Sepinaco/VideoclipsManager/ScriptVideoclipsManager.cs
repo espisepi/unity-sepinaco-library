@@ -2,7 +2,7 @@ using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.Video;
 
-public class ScriptVideoclipsNew : MonoBehaviour
+public class ScriptVideoclipsManager : MonoBehaviour
 {
     [Header("Video Clips")]
     [Tooltip("Arrastra aquí los VideoClip desde el editor")]
@@ -79,7 +79,7 @@ public class ScriptVideoclipsNew : MonoBehaviour
     {
         if (videoClips == null || videoClips.Length == 0)
         {
-            Debug.LogWarning("[ScriptVideoclipsNew] No hay VideoClips asignados.");
+            Debug.LogWarning("[ScriptVideoclipsManager No hay VideoClips asignados.");
             return;
         }
 
@@ -225,7 +225,7 @@ public class ScriptVideoclipsNew : MonoBehaviour
         currentVideoIndex = index;
         guiStringsDirty = true;
 
-        Debug.Log($"[ScriptVideoclipsNew] Reproduciendo vídeo {index}: {videoClips[index].name}");
+        Debug.Log($"[ScriptVideoclipsManager] Reproduciendo vídeo {index}: {videoClips[index].name}");
     }
 
     void NextVideo()
@@ -250,7 +250,7 @@ public class ScriptVideoclipsNew : MonoBehaviour
 
         texturesReplaced = true;
         guiStringsDirty = true;
-        Debug.Log("[ScriptVideoclipsNew] Texturas reemplazadas por vídeo.");
+        Debug.Log("[ScriptVideoclipsManager] Texturas reemplazadas por vídeo.");
     }
 
     void RestoreOriginalTextures()
@@ -264,7 +264,7 @@ public class ScriptVideoclipsNew : MonoBehaviour
 
         texturesReplaced = false;
         guiStringsDirty = true;
-        Debug.Log("[ScriptVideoclipsNew] Texturas originales restauradas.");
+        Debug.Log("[ScriptVideoclipsManager] Texturas originales restauradas.");
     }
 
     void ToggleMute()
@@ -272,7 +272,7 @@ public class ScriptVideoclipsNew : MonoBehaviour
         isMuted = !isMuted;
         audioSource.mute = isMuted;
         guiStringsDirty = true;
-        Debug.Log($"[ScriptVideoclipsNew] Audio {(isMuted ? "muteado" : "activado")}.");
+        Debug.Log($"[ScriptVideoclipsManager] Audio {(isMuted ? "muteado" : "activado")}.");
     }
 
     void InitStyles()
