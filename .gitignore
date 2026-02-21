@@ -1,0 +1,38 @@
+# Ignore everything
+/*
+
+# But keep git files
+!.gitignore
+!.gitattributes
+
+# Keep Packages (needed to open the project correctly)
+!Packages/
+
+# Keep Assets folder structure, but ignore its contents initially
+!Assets/
+Assets/*
+
+# Only keep Sepinaco and its .meta
+!Assets/Sepinaco/
+!Assets/Sepinaco.meta
+
+# ===== Standard Unity ignores (for safety) =====
+Library/
+Temp/
+Obj/
+Build/
+Builds/
+Logs/
+UserSettings/
+MemoryCaptures/
+Recordings/
+
+# Burst debug
+*_BurstDebugInformation_DoNotShip/
+
+# macOS
+.DS_Store
+
+# Builds
+*.app
+*.unitypackage
