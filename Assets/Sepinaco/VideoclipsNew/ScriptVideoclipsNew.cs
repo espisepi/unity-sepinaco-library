@@ -12,6 +12,10 @@ public class ScriptVideoclipsNew : MonoBehaviour
     public int textureWidth = 1920;
     public int textureHeight = 1080;
 
+    [Header("Shader")]
+    [Tooltip("Shader para el material de vídeo. Si no se asigna, usa Unlit/Texture")]
+    public Shader videoShader;
+
     [Header("Menú")]
     [Tooltip("Tecla para abrir/cerrar el menú de controles de vídeo")]
     public KeyCode menuKey = KeyCode.F1;
@@ -49,6 +53,8 @@ public class ScriptVideoclipsNew : MonoBehaviour
     private Material videoMaterial;
 
     private Dictionary<Renderer, Material[]> originalMaterials = new Dictionary<Renderer, Material[]>();
+    private Dictionary<Renderer, Material[]> videoMaterialArrays = new Dictionary<Renderer, Material[]>();
+    private bool hasVideoClips;
     private bool texturesReplaced;
     private bool isMuted;
     private int currentVideoIndex;
@@ -60,6 +66,15 @@ public class ScriptVideoclipsNew : MonoBehaviour
     private GUIStyle labelStyle;
     private bool stylesInitialized;
 
+    private string cachedLabelNext;
+    private string cachedLabelPrevious;
+    private string cachedLabelScroll;
+    private string cachedLabelClose;
+    private string cachedLabelTexture;
+    private string cachedLabelMute;
+    private string cachedLabelVideo;
+    private bool guiStringsDirty = true;
+
     void Start()
     {
         if (videoClips == null || videoClips.Length == 0)
@@ -68,10 +83,14 @@ public class ScriptVideoclipsNew : MonoBehaviour
             return;
         }
 
+        hasVideoClips = true;
+
         StoreOriginalMaterials();
         SetupRenderTexture();
         SetupVideoPlayer();
         SetupAudioSource();
+        BuildVideoMaterialArrays();
+        BuildStaticGUIStrings();
 
         isMuted = startMuted;
         audioSource.mute = isMuted;
@@ -85,7 +104,7 @@ public class ScriptVideoclipsNew : MonoBehaviour
 
     void Update()
     {
-        if (videoClips == null || videoClips.Length == 0) return;
+        if (!hasVideoClips) return;
 
         if (Input.GetKeyDown(menuKey))
             menuActive = !menuActive;
@@ -131,12 +150,47 @@ public class ScriptVideoclipsNew : MonoBehaviour
         }
     }
 
+    void BuildVideoMaterialArrays()
+    {
+        foreach (var kvp in originalMaterials)
+        {
+            Material[] mats = new Material[kvp.Value.Length];
+            for (int i = 0; i < mats.Length; i++)
+                mats[i] = videoMaterial;
+            videoMaterialArrays[kvp.Key] = mats;
+        }
+    }
+
+    void BuildStaticGUIStrings()
+    {
+        cachedLabelNext = $"<b>[{nextVideoKey}]</b>  Siguiente vídeo";
+        cachedLabelPrevious = $"<b>[{previousVideoKey}]</b>  Vídeo anterior";
+        cachedLabelScroll = $"<b>[{scrollUpKey}]</b> / <b>[{scrollDownKey}]</b>  Scroll menú";
+        cachedLabelClose = $"<color=#888888>[{menuKey}] para cerrar</color>";
+    }
+
+    void RebuildDynamicGUIStrings()
+    {
+        cachedLabelTexture = $"<b>[{toggleTextureKey}]</b>  Texturas: {(texturesReplaced ? "<color=#FF6666>Vídeo</color>" : "<color=#66FF66>Original</color>")}";
+        cachedLabelMute = $"<b>[{toggleMuteKey}]</b>  Audio: {(isMuted ? "<color=#FF6666>Mute</color>" : "<color=#66FF66>On</color>")}";
+
+        string videoName = "---";
+        if (videoClips != null && currentVideoIndex < videoClips.Length && videoClips[currentVideoIndex] != null)
+            videoName = videoClips[currentVideoIndex].name;
+
+        cachedLabelVideo = $"<b>Vídeo:</b> {videoName}  ({currentVideoIndex + 1}/{videoClips.Length})";
+        guiStringsDirty = false;
+    }
+
     void SetupRenderTexture()
     {
         renderTexture = new RenderTexture(textureWidth, textureHeight, 0);
         renderTexture.Create();
 
-        videoMaterial = new Material(Shader.Find("Unlit/Texture"));
+        if (videoShader == null)
+            videoShader = Shader.Find("Unlit/Texture");
+
+        videoMaterial = new Material(videoShader);
         videoMaterial.mainTexture = renderTexture;
     }
 
@@ -169,6 +223,7 @@ public class ScriptVideoclipsNew : MonoBehaviour
         videoPlayer.clip = videoClips[index];
         videoPlayer.Play();
         currentVideoIndex = index;
+        guiStringsDirty = true;
 
         Debug.Log($"[ScriptVideoclipsNew] Reproduciendo vídeo {index}: {videoClips[index].name}");
     }
@@ -187,19 +242,14 @@ public class ScriptVideoclipsNew : MonoBehaviour
 
     void ReplaceSceneTextures()
     {
-        foreach (var kvp in originalMaterials)
+        foreach (var kvp in videoMaterialArrays)
         {
-            Renderer rend = kvp.Key;
-            if (rend == null) continue;
-
-            Material[] mats = new Material[rend.sharedMaterials.Length];
-            for (int i = 0; i < mats.Length; i++)
-                mats[i] = videoMaterial;
-
-            rend.sharedMaterials = mats;
+            if (kvp.Key == null) continue;
+            kvp.Key.sharedMaterials = kvp.Value;
         }
 
         texturesReplaced = true;
+        guiStringsDirty = true;
         Debug.Log("[ScriptVideoclipsNew] Texturas reemplazadas por vídeo.");
     }
 
@@ -213,6 +263,7 @@ public class ScriptVideoclipsNew : MonoBehaviour
         }
 
         texturesReplaced = false;
+        guiStringsDirty = true;
         Debug.Log("[ScriptVideoclipsNew] Texturas originales restauradas.");
     }
 
@@ -220,6 +271,7 @@ public class ScriptVideoclipsNew : MonoBehaviour
     {
         isMuted = !isMuted;
         audioSource.mute = isMuted;
+        guiStringsDirty = true;
         Debug.Log($"[ScriptVideoclipsNew] Audio {(isMuted ? "muteado" : "activado")}.");
     }
 
@@ -255,6 +307,9 @@ public class ScriptVideoclipsNew : MonoBehaviour
 
         InitStyles();
 
+        if (guiStringsDirty)
+            RebuildDynamicGUIStrings();
+
         float boxWidth = 340f;
         float contentHeight = 260f;
         float maxBoxHeight = Mathf.Min(contentHeight, Screen.height * 0.8f);
@@ -271,19 +326,15 @@ public class ScriptVideoclipsNew : MonoBehaviour
         GUILayout.Label("Video Controls", titleStyle);
         GUILayout.Space(10);
 
-        string videoName = "---";
-        if (videoClips != null && currentVideoIndex < videoClips.Length && videoClips[currentVideoIndex] != null)
-            videoName = videoClips[currentVideoIndex].name;
-
-        GUILayout.Label($"<b>[{toggleTextureKey}]</b>  Texturas: {(texturesReplaced ? "<color=#FF6666>Vídeo</color>" : "<color=#66FF66>Original</color>")}", labelStyle);
-        GUILayout.Label($"<b>[{toggleMuteKey}]</b>  Audio: {(isMuted ? "<color=#FF6666>Mute</color>" : "<color=#66FF66>On</color>")}", labelStyle);
-        GUILayout.Label($"<b>[{nextVideoKey}]</b>  Siguiente vídeo", labelStyle);
-        GUILayout.Label($"<b>[{previousVideoKey}]</b>  Vídeo anterior", labelStyle);
-        GUILayout.Label($"<b>[{scrollUpKey}]</b> / <b>[{scrollDownKey}]</b>  Scroll menú", labelStyle);
+        GUILayout.Label(cachedLabelTexture, labelStyle);
+        GUILayout.Label(cachedLabelMute, labelStyle);
+        GUILayout.Label(cachedLabelNext, labelStyle);
+        GUILayout.Label(cachedLabelPrevious, labelStyle);
+        GUILayout.Label(cachedLabelScroll, labelStyle);
         GUILayout.Space(8);
-        GUILayout.Label($"<b>Vídeo:</b> {videoName}  ({currentVideoIndex + 1}/{videoClips.Length})", labelStyle);
+        GUILayout.Label(cachedLabelVideo, labelStyle);
         GUILayout.Space(4);
-        GUILayout.Label($"<color=#888888>[{menuKey}] para cerrar</color>", labelStyle);
+        GUILayout.Label(cachedLabelClose, labelStyle);
 
         GUILayout.EndScrollView();
         GUILayout.EndArea();
