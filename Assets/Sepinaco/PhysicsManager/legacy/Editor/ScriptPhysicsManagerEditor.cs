@@ -6,11 +6,25 @@ public class ScriptPhysicsManagerEditor : Editor
 {
     private SerializedProperty _startModeProp;
     private SerializedProperty _targetsProp;
+    private SerializedProperty _menuKeyProp;
+    private SerializedProperty _enableAllKeyProp;
+    private SerializedProperty _disableAllKeyProp;
+    private SerializedProperty _toggleSelectedKeyProp;
+    private SerializedProperty _nextTargetKeyProp;
+    private SerializedProperty _prevTargetKeyProp;
+
+    private bool _keysFoldout = true;
 
     private void OnEnable()
     {
         _startModeProp = serializedObject.FindProperty("_startMode");
         _targetsProp = serializedObject.FindProperty("_targets");
+        _menuKeyProp = serializedObject.FindProperty("menuKey");
+        _enableAllKeyProp = serializedObject.FindProperty("enableAllKey");
+        _disableAllKeyProp = serializedObject.FindProperty("disableAllKey");
+        _toggleSelectedKeyProp = serializedObject.FindProperty("toggleSelectedKey");
+        _nextTargetKeyProp = serializedObject.FindProperty("nextTargetKey");
+        _prevTargetKeyProp = serializedObject.FindProperty("prevTargetKey");
     }
 
     public override void OnInspectorGUI()
@@ -23,6 +37,21 @@ public class ScriptPhysicsManagerEditor : Editor
 
         // ── Start mode ──
         EditorGUILayout.PropertyField(_startModeProp, new GUIContent("Start Mode"));
+        EditorGUILayout.Space(4);
+
+        // ── Menu key config ──
+        _keysFoldout = EditorGUILayout.Foldout(_keysFoldout, "Menú y Teclas", true, EditorStyles.foldoutHeader);
+        if (_keysFoldout)
+        {
+            EditorGUI.indentLevel++;
+            EditorGUILayout.PropertyField(_menuKeyProp, new GUIContent("Tecla Menú"));
+            EditorGUILayout.PropertyField(_enableAllKeyProp, new GUIContent("Activar Todos"));
+            EditorGUILayout.PropertyField(_disableAllKeyProp, new GUIContent("Desactivar Todos"));
+            EditorGUILayout.PropertyField(_toggleSelectedKeyProp, new GUIContent("Alternar Seleccionado"));
+            EditorGUILayout.PropertyField(_nextTargetKeyProp, new GUIContent("Siguiente Target"));
+            EditorGUILayout.PropertyField(_prevTargetKeyProp, new GUIContent("Target Anterior"));
+            EditorGUI.indentLevel--;
+        }
         EditorGUILayout.Space(4);
 
         // ── Global buttons ──
@@ -47,7 +76,14 @@ public class ScriptPhysicsManagerEditor : Editor
             EditorGUI.indentLevel++;
             int size = _targetsProp.arraySize;
             int newSize = EditorGUILayout.IntField("Size", size);
-            if (newSize != size)
+            if (newSize > size)
+            {
+                _targetsProp.arraySize = newSize;
+                for (int n = size; n < newSize; n++)
+                    _targetsProp.GetArrayElementAtIndex(n)
+                        .FindPropertyRelative("collidersEnabled").boolValue = true;
+            }
+            else if (newSize < size)
             {
                 _targetsProp.arraySize = newSize;
             }

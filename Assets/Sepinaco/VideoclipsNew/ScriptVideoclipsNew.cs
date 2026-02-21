@@ -24,10 +24,10 @@ public class ScriptVideoclipsNew : MonoBehaviour
     public KeyCode toggleMuteKey = KeyCode.M;
 
     [Tooltip("Tecla para cambiar al siguiente vídeo")]
-    public KeyCode nextVideoKey = KeyCode.N;
+    public KeyCode nextVideoKey = KeyCode.D;
 
     [Tooltip("Tecla para cambiar al vídeo anterior")]
-    public KeyCode previousVideoKey = KeyCode.B;
+    public KeyCode previousVideoKey = KeyCode.A;
 
     [Header("Estado inicial")]
     public bool replaceTexturesOnStart = true;
