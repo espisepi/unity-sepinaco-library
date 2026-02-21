@@ -4,10 +4,12 @@ using UnityEngine;
 [CustomEditor(typeof(ScriptPhysicsManager))]
 public class ScriptPhysicsManagerEditor : Editor
 {
+    private SerializedProperty _startModeProp;
     private SerializedProperty _targetsProp;
 
     private void OnEnable()
     {
+        _startModeProp = serializedObject.FindProperty("_startMode");
         _targetsProp = serializedObject.FindProperty("_targets");
     }
 
@@ -17,6 +19,10 @@ public class ScriptPhysicsManagerEditor : Editor
         ScriptPhysicsManager manager = (ScriptPhysicsManager)target;
 
         EditorGUILayout.LabelField("Physics Manager", EditorStyles.boldLabel);
+        EditorGUILayout.Space(4);
+
+        // ── Start mode ──
+        EditorGUILayout.PropertyField(_startModeProp, new GUIContent("Start Mode"));
         EditorGUILayout.Space(4);
 
         // ── Global buttons ──

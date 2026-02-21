@@ -1,6 +1,18 @@
 using System;
 using UnityEngine;
 
+public enum StartCollidersMode
+{
+    [Tooltip("Usa el estado individual (collidersEnabled) de cada target.")]
+    UseIndividualSettings,
+
+    [Tooltip("Fuerza todos los colliders activados al iniciar.")]
+    EnableAll,
+
+    [Tooltip("Fuerza todos los colliders desactivados al iniciar.")]
+    DisableAll
+}
+
 [Serializable]
 public class PhysicsTarget
 {
@@ -27,6 +39,10 @@ public class PhysicsTarget
 /// </summary>
 public class ScriptPhysicsManager : MonoBehaviour
 {
+    [Header("Start Behaviour")]
+    [Tooltip("Qué hacer con los colliders al arrancar la escena.")]
+    [SerializeField] private StartCollidersMode _startMode = StartCollidersMode.UseIndividualSettings;
+
     [Header("Physics Targets")]
     [Tooltip("Arrastra aquí los GameObjects cuyas físicas quieres gestionar.")]
     [SerializeField] private PhysicsTarget[] _targets = Array.Empty<PhysicsTarget>();
@@ -36,10 +52,24 @@ public class ScriptPhysicsManager : MonoBehaviour
 
     public int TargetCount => _targets.Length;
 
+    public StartCollidersMode StartMode => _startMode;
+
     private void Awake()
     {
         BuildCache();
-        ApplyAll();
+
+        switch (_startMode)
+        {
+            case StartCollidersMode.EnableAll:
+                SetAllInternal(true);
+                break;
+            case StartCollidersMode.DisableAll:
+                SetAllInternal(false);
+                break;
+            default:
+                ApplyAll();
+                break;
+        }
     }
 
     // ───────────────────────── API pública (runtime) ─────────────────────────
