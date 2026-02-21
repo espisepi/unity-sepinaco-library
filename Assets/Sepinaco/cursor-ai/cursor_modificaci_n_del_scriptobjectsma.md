@@ -1,5 +1,5 @@
 # Modificación del ScriptObjectsManager
-_Exported on 21/02/2026 at 23:16:55 CET from Cursor (2.5.20)_
+_Exported on 21/02/2026 at 23:36:13 CET from Cursor (2.5.20)_
 
 ---
 
