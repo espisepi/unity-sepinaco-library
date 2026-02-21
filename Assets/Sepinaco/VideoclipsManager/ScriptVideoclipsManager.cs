@@ -61,6 +61,8 @@ public class ScriptVideoclipsManager : MonoBehaviour
     private bool menuActive;
     private Vector2 scrollPosition;
 
+    private int cachedRendererCount;
+
     private GUIStyle boxStyle;
     private GUIStyle titleStyle;
     private GUIStyle labelStyle;
@@ -148,6 +150,30 @@ public class ScriptVideoclipsManager : MonoBehaviour
             System.Array.Copy(rend.sharedMaterials, copy, copy.Length);
             originalMaterials[rend] = copy;
         }
+        cachedRendererCount = renderers.Length;
+    }
+
+    void RefreshRenderersIfNeeded()
+    {
+        Renderer[] renderers = FindObjectsOfType<Renderer>();
+        if (renderers.Length == cachedRendererCount) return;
+
+        foreach (Renderer rend in renderers)
+        {
+            if (rend.gameObject == gameObject) continue;
+            if (originalMaterials.ContainsKey(rend)) continue;
+
+            Material[] copy = new Material[rend.sharedMaterials.Length];
+            System.Array.Copy(rend.sharedMaterials, copy, copy.Length);
+            originalMaterials[rend] = copy;
+
+            Material[] mats = new Material[copy.Length];
+            for (int i = 0; i < mats.Length; i++)
+                mats[i] = videoMaterial;
+            videoMaterialArrays[rend] = mats;
+        }
+
+        cachedRendererCount = renderers.Length;
     }
 
     void BuildVideoMaterialArrays()
@@ -242,6 +268,8 @@ public class ScriptVideoclipsManager : MonoBehaviour
 
     void ReplaceSceneTextures()
     {
+        RefreshRenderersIfNeeded();
+
         foreach (var kvp in videoMaterialArrays)
         {
             if (kvp.Key == null) continue;
@@ -255,6 +283,8 @@ public class ScriptVideoclipsManager : MonoBehaviour
 
     void RestoreOriginalTextures()
     {
+        RefreshRenderersIfNeeded();
+
         foreach (var kvp in originalMaterials)
         {
             Renderer rend = kvp.Key;
