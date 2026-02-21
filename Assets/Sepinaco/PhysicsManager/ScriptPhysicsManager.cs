@@ -59,13 +59,13 @@ public class ScriptPhysicsManager : MonoBehaviour
     public KeyCode enableAllKey = KeyCode.E;
 
     [Tooltip("Tecla para desactivar todos los colliders")]
-    public KeyCode disableAllKey = KeyCode.D;
+    public KeyCode disableAllKey = KeyCode.Q;
 
     [Tooltip("Tecla para alternar el collider del target seleccionado")]
-    public KeyCode toggleSelectedKey = KeyCode.T;
+    public KeyCode toggleSelectedKey = KeyCode.R;
 
     [Tooltip("Tecla para seleccionar el siguiente target")]
-    public KeyCode nextTargetKey = KeyCode.N;
+    public KeyCode nextTargetKey = KeyCode.X;
 
     [Tooltip("Tecla para seleccionar el target anterior")]
     public KeyCode prevTargetKey = KeyCode.B;
