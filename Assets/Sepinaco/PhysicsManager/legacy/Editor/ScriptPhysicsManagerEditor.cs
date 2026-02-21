@@ -75,7 +75,7 @@ public class ScriptPhysicsManagerEditor : Editor
         {
             EditorGUI.indentLevel++;
             int size = _targetsProp.arraySize;
-            int newSize = EditorGUILayout.IntField("Size", size);
+            int newSize = Mathf.Max(0, EditorGUILayout.IntField("Size", size));
             if (newSize > size)
             {
                 _targetsProp.arraySize = newSize;
@@ -88,6 +88,9 @@ public class ScriptPhysicsManagerEditor : Editor
                 _targetsProp.arraySize = newSize;
             }
 
+            int indexToDelete = -1;
+            int indexToInsert = -1;
+
             for (int i = 0; i < _targetsProp.arraySize; i++)
             {
                 SerializedProperty element = _targetsProp.GetArrayElementAtIndex(i);
@@ -95,7 +98,7 @@ public class ScriptPhysicsManagerEditor : Editor
                 SerializedProperty enabledProp = element.FindPropertyRelative("collidersEnabled");
 
                 EditorGUILayout.Space(2);
-                Rect rect = EditorGUILayout.BeginHorizontal();
+                EditorGUILayout.BeginHorizontal();
                 EditorGUILayout.BeginVertical();
 
                 string label = targetProp.objectReferenceValue != null
@@ -118,6 +121,18 @@ public class ScriptPhysicsManagerEditor : Editor
                 GUI.backgroundColor = original;
 
                 EditorGUILayout.EndVertical();
+
+                EditorGUILayout.BeginVertical(GUILayout.Width(24));
+                if (GUILayout.Button("+", GUILayout.Width(22), GUILayout.Height(22)))
+                {
+                    indexToInsert = i + 1;
+                }
+                if (GUILayout.Button("\u2212", GUILayout.Width(22), GUILayout.Height(22)))
+                {
+                    indexToDelete = i;
+                }
+                EditorGUILayout.EndVertical();
+
                 EditorGUILayout.EndHorizontal();
 
                 if (i < _targetsProp.arraySize - 1)
@@ -126,6 +141,31 @@ public class ScriptPhysicsManagerEditor : Editor
                     DrawSeparator();
                 }
             }
+
+            if (indexToDelete >= 0)
+            {
+                _targetsProp.DeleteArrayElementAtIndex(indexToDelete);
+            }
+            else if (indexToInsert >= 0)
+            {
+                _targetsProp.InsertArrayElementAtIndex(indexToInsert);
+                _targetsProp.GetArrayElementAtIndex(indexToInsert)
+                    .FindPropertyRelative("target").objectReferenceValue = null;
+                _targetsProp.GetArrayElementAtIndex(indexToInsert)
+                    .FindPropertyRelative("collidersEnabled").boolValue = true;
+            }
+
+            EditorGUILayout.Space(4);
+            if (GUILayout.Button("+ Add Target", GUILayout.Height(24)))
+            {
+                int idx = _targetsProp.arraySize;
+                _targetsProp.arraySize++;
+                _targetsProp.GetArrayElementAtIndex(idx)
+                    .FindPropertyRelative("target").objectReferenceValue = null;
+                _targetsProp.GetArrayElementAtIndex(idx)
+                    .FindPropertyRelative("collidersEnabled").boolValue = true;
+            }
+
             EditorGUI.indentLevel--;
         }
 
