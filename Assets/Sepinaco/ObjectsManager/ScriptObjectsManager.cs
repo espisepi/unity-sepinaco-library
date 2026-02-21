@@ -77,6 +77,13 @@ public class ScriptObjectsManager : MonoBehaviour
     [Tooltip("Velocidad de scroll en píxeles por segundo")]
     public float scrollSpeed = 200f;
 
+    [Header("Zoom de la UI (solo funcionan con el menú abierto)")]
+    [Tooltip("Tecla para aumentar el tamaño de las letras de la UI")]
+    public KeyCode zoomInKey = KeyCode.I;
+
+    [Tooltip("Tecla para disminuir el tamaño de las letras de la UI")]
+    public KeyCode zoomOutKey = KeyCode.O;
+
     private bool _menuActive;
     private int _selectedIndex;
     private Vector2 _scrollPosition;
@@ -86,6 +93,10 @@ public class ScriptObjectsManager : MonoBehaviour
     private GUIStyle _labelStyle;
     private GUIStyle _selectedLabelStyle;
     private bool _stylesInitialized;
+    private int _guiFontSize = 14;
+    private const int GuiFontSizeMin = 8;
+    private const int GuiFontSizeMax = 40;
+    private const int GuiFontSizeStep = 2;
 
     public event Action<GameObject, bool> OnTargetStateChanged;
 
@@ -140,6 +151,18 @@ public class ScriptObjectsManager : MonoBehaviour
             _scrollPosition.y += scrollSpeed * Time.deltaTime;
 
         if (_scrollPosition.y < 0f) _scrollPosition.y = 0f;
+
+        if (Input.GetKeyDown(zoomInKey))
+        {
+            _guiFontSize = Mathf.Min(_guiFontSize + GuiFontSizeStep, GuiFontSizeMax);
+            _stylesInitialized = false;
+        }
+
+        if (Input.GetKeyDown(zoomOutKey))
+        {
+            _guiFontSize = Mathf.Max(_guiFontSize - GuiFontSizeStep, GuiFontSizeMin);
+            _stylesInitialized = false;
+        }
     }
 
     // ───────────────────────── API pública (runtime) ─────────────────────────
@@ -194,13 +217,13 @@ public class ScriptObjectsManager : MonoBehaviour
         _boxStyle.padding = new RectOffset(16, 16, 12, 12);
 
         _titleStyle = new GUIStyle(GUI.skin.label);
-        _titleStyle.fontSize = 18;
+        _titleStyle.fontSize = _guiFontSize + 4;
         _titleStyle.fontStyle = FontStyle.Bold;
         _titleStyle.normal.textColor = Color.white;
         _titleStyle.alignment = TextAnchor.MiddleCenter;
 
         _labelStyle = new GUIStyle(GUI.skin.label);
-        _labelStyle.fontSize = 14;
+        _labelStyle.fontSize = _guiFontSize;
         _labelStyle.normal.textColor = new Color(0.9f, 0.9f, 0.9f);
         _labelStyle.richText = true;
 
@@ -241,6 +264,7 @@ public class ScriptObjectsManager : MonoBehaviour
         GUILayout.Label($"<b>[{toggleSelectedKey}]</b>  Alternar objeto seleccionado", _labelStyle);
         GUILayout.Label($"<b>[{nextTargetKey}]</b> / <b>[{prevTargetKey}]</b>  Navegar targets", _labelStyle);
         GUILayout.Label($"<b>[{scrollUpKey}]</b> / <b>[{scrollDownKey}]</b>  Scroll menú", _labelStyle);
+        GUILayout.Label($"<b>[{zoomInKey}]</b> / <b>[{zoomOutKey}]</b>  Zoom UI ({_guiFontSize}px)", _labelStyle);
         GUILayout.Space(8);
 
         for (int i = 0; i < targetCount; i++)

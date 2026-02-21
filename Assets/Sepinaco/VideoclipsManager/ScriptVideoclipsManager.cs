@@ -43,6 +43,13 @@ public class ScriptVideoclipsManager : MonoBehaviour
     [Tooltip("Velocidad de scroll en píxeles por segundo")]
     public float scrollSpeed = 200f;
 
+    [Header("Zoom de la UI (solo funcionan con el menú abierto)")]
+    [Tooltip("Tecla para aumentar el tamaño de las letras de la UI")]
+    public KeyCode zoomInKey = KeyCode.I;
+
+    [Tooltip("Tecla para disminuir el tamaño de las letras de la UI")]
+    public KeyCode zoomOutKey = KeyCode.O;
+
     [Header("Estado inicial")]
     public bool replaceTexturesOnStart = true;
     public bool startMuted = false;
@@ -68,6 +75,10 @@ public class ScriptVideoclipsManager : MonoBehaviour
     private GUIStyle titleStyle;
     private GUIStyle labelStyle;
     private bool stylesInitialized;
+    private int guiFontSize = 14;
+    private const int GuiFontSizeMin = 8;
+    private const int GuiFontSizeMax = 40;
+    private const int GuiFontSizeStep = 2;
 
     private string cachedLabelNext;
     private string cachedLabelPrevious;
@@ -142,6 +153,18 @@ public class ScriptVideoclipsManager : MonoBehaviour
             scrollPosition.y += scrollSpeed * Time.deltaTime;
 
         if (scrollPosition.y < 0f) scrollPosition.y = 0f;
+
+        if (Input.GetKeyDown(zoomInKey))
+        {
+            guiFontSize = Mathf.Min(guiFontSize + GuiFontSizeStep, GuiFontSizeMax);
+            stylesInitialized = false;
+        }
+
+        if (Input.GetKeyDown(zoomOutKey))
+        {
+            guiFontSize = Mathf.Max(guiFontSize - GuiFontSizeStep, GuiFontSizeMin);
+            stylesInitialized = false;
+        }
     }
 
     void StoreOriginalMaterials()
@@ -348,13 +371,13 @@ public class ScriptVideoclipsManager : MonoBehaviour
         boxStyle.padding = new RectOffset(16, 16, 12, 12);
 
         titleStyle = new GUIStyle(GUI.skin.label);
-        titleStyle.fontSize = 18;
+        titleStyle.fontSize = guiFontSize + 4;
         titleStyle.fontStyle = FontStyle.Bold;
         titleStyle.normal.textColor = Color.white;
         titleStyle.alignment = TextAnchor.MiddleCenter;
 
         labelStyle = new GUIStyle(GUI.skin.label);
-        labelStyle.fontSize = 14;
+        labelStyle.fontSize = guiFontSize;
         labelStyle.normal.textColor = new Color(0.9f, 0.9f, 0.9f);
         labelStyle.richText = true;
 
@@ -391,6 +414,7 @@ public class ScriptVideoclipsManager : MonoBehaviour
         GUILayout.Label(cachedLabelNext, labelStyle);
         GUILayout.Label(cachedLabelPrevious, labelStyle);
         GUILayout.Label(cachedLabelScroll, labelStyle);
+        GUILayout.Label($"<b>[{zoomInKey}]</b> / <b>[{zoomOutKey}]</b>  Zoom UI ({guiFontSize}px)", labelStyle);
         GUILayout.Space(8);
         GUILayout.Label(cachedLabelVideo, labelStyle);
         GUILayout.Space(4);
