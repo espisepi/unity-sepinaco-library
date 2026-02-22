@@ -220,9 +220,8 @@ public class ScriptObjectsManager : MonoBehaviour
         return (uint)index < (uint)_targets.Length ? _targets[index] : null;
     }
 
-    // ────────────────────── Editor: aplicar cambios al tocar Inspector ──────────────────────
+    // ────────────────────── Aplicar cambios al modificar campos ──────────────────────
 
-#if UNITY_EDITOR
     private void OnValidate()
     {
         if (_targets == null) return;
@@ -233,7 +232,6 @@ public class ScriptObjectsManager : MonoBehaviour
             entry.target.SetActive(entry.isActive);
         }
     }
-#endif
 
     // ───────────────────────── OnGUI Menu ─────────────────────────
 
