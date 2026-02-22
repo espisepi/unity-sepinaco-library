@@ -12,6 +12,9 @@ using UnityEngine;
 /// Uso: añadir este componente a CUALQUIER GameObject de la escena.
 /// El script localiza automáticamente Camera.main y le inyecta un componente
 /// auxiliar invisible que ejecuta el post-procesado. No es necesario tocar la cámara.
+///
+/// En runtime, pulsa F1 para abrir un panel OnGUI (arriba-derecha) con controles
+/// interactivos para modificar todos los parámetros del efecto.
 /// </summary>
 [ExecuteInEditMode]
 public class ScriptPostProcessingPixelPs1 : MonoBehaviour
@@ -54,9 +57,123 @@ public class ScriptPostProcessingPixelPs1 : MonoBehaviour
     [Tooltip("Cámara sobre la que aplicar el efecto. Si se deja vacío, se usa Camera.main.")]
     [SerializeField] private Camera _targetCamera;
 
+    // ──────────────── Menú ────────────────
+
+    [Header("Menú")]
+    [Tooltip("Tecla para abrir/cerrar el menú de controles del efecto PS1")]
+    public KeyCode menuKey = KeyCode.F1;
+
+    [Header("Controles de efecto (solo funcionan con el menú abierto)")]
+    [Tooltip("Tecla para activar/desactivar el efecto completo")]
+    public KeyCode toggleEffectKey = KeyCode.E;
+
+    [Tooltip("Tecla para aumentar el tamaño de píxel")]
+    public KeyCode pixelSizeUpKey = KeyCode.Alpha2;
+
+    [Tooltip("Tecla para disminuir el tamaño de píxel")]
+    public KeyCode pixelSizeDownKey = KeyCode.Alpha1;
+
+    [Tooltip("Tecla para aumentar la profundidad de color")]
+    public KeyCode colorDepthUpKey = KeyCode.Alpha4;
+
+    [Tooltip("Tecla para disminuir la profundidad de color")]
+    public KeyCode colorDepthDownKey = KeyCode.Alpha3;
+
+    [Tooltip("Tecla para aumentar la intensidad del jitter")]
+    public KeyCode jitterIntensityUpKey = KeyCode.Alpha6;
+
+    [Tooltip("Tecla para disminuir la intensidad del jitter")]
+    public KeyCode jitterIntensityDownKey = KeyCode.Alpha5;
+
+    [Tooltip("Tecla para aumentar la velocidad del jitter")]
+    public KeyCode jitterSpeedUpKey = KeyCode.Alpha8;
+
+    [Tooltip("Tecla para disminuir la velocidad del jitter")]
+    public KeyCode jitterSpeedDownKey = KeyCode.Alpha7;
+
+    [Tooltip("Tecla para aumentar la intensidad del dithering")]
+    public KeyCode ditherIntensityUpKey = KeyCode.Alpha0;
+
+    [Tooltip("Tecla para disminuir la intensidad del dithering")]
+    public KeyCode ditherIntensityDownKey = KeyCode.Alpha9;
+
+    [Header("Presets (solo funcionan con el menú abierto)")]
+    [Tooltip("Tecla para aplicar el preset PS1 auténtico")]
+    public KeyCode presetAuthenticKey = KeyCode.F2;
+
+    [Tooltip("Tecla para aplicar el preset retro sutil")]
+    public KeyCode presetSubtleKey = KeyCode.F3;
+
+    [Header("Incrementos por pulsación")]
+    [Tooltip("Incremento del tamaño de píxel por pulsación")]
+    public float pixelSizeStep = 1f;
+
+    [Tooltip("Incremento de la profundidad de color por pulsación")]
+    public float colorDepthStep = 8f;
+
+    [Tooltip("Incremento de la intensidad del jitter por pulsación")]
+    public float jitterIntensityStep = 0.001f;
+
+    [Tooltip("Incremento de la velocidad del jitter por pulsación")]
+    public float jitterSpeedStep = 5f;
+
+    [Tooltip("Incremento de la intensidad del dithering por pulsación")]
+    public float ditherIntensityStep = 0.005f;
+
+    [Header("Scroll del menú (solo funcionan con el menú abierto)")]
+    [Tooltip("Tecla para hacer scroll hacia arriba en el menú")]
+    public KeyCode scrollUpKey = KeyCode.UpArrow;
+
+    [Tooltip("Tecla para hacer scroll hacia abajo en el menú")]
+    public KeyCode scrollDownKey = KeyCode.DownArrow;
+
+    [Tooltip("Velocidad de scroll en píxeles por segundo")]
+    public float scrollSpeed = 200f;
+
+    [Header("Zoom de la UI (solo funcionan con el menú abierto)")]
+    [Tooltip("Tecla para aumentar el tamaño de las letras de la UI")]
+    public KeyCode zoomInKey = KeyCode.I;
+
+    [Tooltip("Tecla para disminuir el tamaño de las letras de la UI")]
+    public KeyCode zoomOutKey = KeyCode.O;
+
+    [Header("Tamaño de la UI (solo funcionan con el menú abierto)")]
+    [Tooltip("Tecla para aumentar el ancho de la UI")]
+    public KeyCode uiWidthIncreaseKey = KeyCode.RightArrow;
+
+    [Tooltip("Tecla para disminuir el ancho de la UI")]
+    public KeyCode uiWidthDecreaseKey = KeyCode.LeftArrow;
+
+    [Tooltip("Tecla para aumentar el alto de la UI")]
+    public KeyCode uiHeightIncreaseKey = KeyCode.PageUp;
+
+    [Tooltip("Tecla para disminuir el alto de la UI")]
+    public KeyCode uiHeightDecreaseKey = KeyCode.PageDown;
+
     // ──────────────── Interno ────────────────
 
     private PS1CameraHook _hook;
+    private bool _effectEnabled = true;
+
+    private bool _menuActive;
+    private Vector2 _scrollPosition;
+
+    private GUIStyle _boxStyle;
+    private GUIStyle _titleStyle;
+    private GUIStyle _labelStyle;
+    private bool _stylesInitialized;
+    private int _guiFontSize = 14;
+    private const int GuiFontSizeMin = 8;
+    private const int GuiFontSizeMax = 40;
+    private const int GuiFontSizeStep = 2;
+
+    private float _guiBoxWidth = 420f;
+    private float _guiBoxHeight = 440f;
+    private const float GuiBoxSizeStep = 20f;
+    private const float GuiBoxWidthMin = 200f;
+    private const float GuiBoxWidthMax = 1200f;
+    private const float GuiBoxHeightMin = 100f;
+    private const float GuiBoxHeightMax = 1200f;
 
     private void OnEnable()
     {
@@ -74,7 +191,90 @@ public class ScriptPostProcessingPixelPs1 : MonoBehaviour
             AttachHook();
 
         if (_hook != null)
-            _hook.PushSettings(_pixelSize, _colorDepth, _jitterIntensity, _jitterSpeed, _ditherIntensity);
+        {
+            if (_effectEnabled)
+                _hook.PushSettings(_pixelSize, _colorDepth, _jitterIntensity, _jitterSpeed, _ditherIntensity);
+            else
+                _hook.PushDisabled();
+        }
+
+        if (!Application.isPlaying) return;
+
+        if (Input.GetKeyDown(menuKey))
+            _menuActive = !_menuActive;
+
+        if (!_menuActive) return;
+
+        if (Input.GetKeyDown(toggleEffectKey))
+            _effectEnabled = !_effectEnabled;
+
+        if (Input.GetKeyDown(pixelSizeUpKey))
+            _pixelSize = Mathf.Clamp(_pixelSize + pixelSizeStep, 1f, 16f);
+
+        if (Input.GetKeyDown(pixelSizeDownKey))
+            _pixelSize = Mathf.Clamp(_pixelSize - pixelSizeStep, 1f, 16f);
+
+        if (Input.GetKeyDown(colorDepthUpKey))
+            _colorDepth = Mathf.Clamp(_colorDepth + colorDepthStep, 2f, 256f);
+
+        if (Input.GetKeyDown(colorDepthDownKey))
+            _colorDepth = Mathf.Clamp(_colorDepth - colorDepthStep, 2f, 256f);
+
+        if (Input.GetKeyDown(jitterIntensityUpKey))
+            _jitterIntensity = Mathf.Clamp(_jitterIntensity + jitterIntensityStep, 0f, 0.02f);
+
+        if (Input.GetKeyDown(jitterIntensityDownKey))
+            _jitterIntensity = Mathf.Clamp(_jitterIntensity - jitterIntensityStep, 0f, 0.02f);
+
+        if (Input.GetKeyDown(jitterSpeedUpKey))
+            _jitterSpeed = Mathf.Clamp(_jitterSpeed + jitterSpeedStep, 1f, 60f);
+
+        if (Input.GetKeyDown(jitterSpeedDownKey))
+            _jitterSpeed = Mathf.Clamp(_jitterSpeed - jitterSpeedStep, 1f, 60f);
+
+        if (Input.GetKeyDown(ditherIntensityUpKey))
+            _ditherIntensity = Mathf.Clamp(_ditherIntensity + ditherIntensityStep, 0f, 0.15f);
+
+        if (Input.GetKeyDown(ditherIntensityDownKey))
+            _ditherIntensity = Mathf.Clamp(_ditherIntensity - ditherIntensityStep, 0f, 0.15f);
+
+        if (Input.GetKeyDown(presetAuthenticKey))
+            ApplyAuthenticPS1Preset();
+
+        if (Input.GetKeyDown(presetSubtleKey))
+            ApplySubtleRetroPreset();
+
+        if (Input.GetKey(scrollUpKey))
+            _scrollPosition.y -= scrollSpeed * Time.deltaTime;
+
+        if (Input.GetKey(scrollDownKey))
+            _scrollPosition.y += scrollSpeed * Time.deltaTime;
+
+        if (_scrollPosition.y < 0f) _scrollPosition.y = 0f;
+
+        if (Input.GetKeyDown(zoomInKey))
+        {
+            _guiFontSize = Mathf.Min(_guiFontSize + GuiFontSizeStep, GuiFontSizeMax);
+            _stylesInitialized = false;
+        }
+
+        if (Input.GetKeyDown(zoomOutKey))
+        {
+            _guiFontSize = Mathf.Max(_guiFontSize - GuiFontSizeStep, GuiFontSizeMin);
+            _stylesInitialized = false;
+        }
+
+        if (Input.GetKeyDown(uiWidthIncreaseKey))
+            _guiBoxWidth = Mathf.Min(_guiBoxWidth + GuiBoxSizeStep, GuiBoxWidthMax);
+
+        if (Input.GetKeyDown(uiWidthDecreaseKey))
+            _guiBoxWidth = Mathf.Max(_guiBoxWidth - GuiBoxSizeStep, GuiBoxWidthMin);
+
+        if (Input.GetKeyDown(uiHeightIncreaseKey))
+            _guiBoxHeight = Mathf.Min(_guiBoxHeight + GuiBoxSizeStep, GuiBoxHeightMax);
+
+        if (Input.GetKeyDown(uiHeightDecreaseKey))
+            _guiBoxHeight = Mathf.Max(_guiBoxHeight - GuiBoxSizeStep, GuiBoxHeightMin);
     }
 
     private Camera ResolveCamera()
@@ -155,6 +355,7 @@ public class ScriptPostProcessingPixelPs1 : MonoBehaviour
         _jitterIntensity = 0.002f;
         _jitterSpeed = 30f;
         _ditherIntensity = 0.03f;
+        _effectEnabled = true;
     }
 
     /// <summary>Aplica un preset más sutil, útil para juegos que quieren un toque retro sin ser extremo.</summary>
@@ -165,6 +366,81 @@ public class ScriptPostProcessingPixelPs1 : MonoBehaviour
         _jitterIntensity = 0.001f;
         _jitterSpeed = 15f;
         _ditherIntensity = 0.015f;
+        _effectEnabled = true;
+    }
+
+    // ──────────────── OnGUI Menu ────────────────
+
+    private void InitStyles()
+    {
+        if (_stylesInitialized) return;
+
+        Texture2D bgTex = new Texture2D(1, 1);
+        bgTex.SetPixel(0, 0, new Color(0f, 0f, 0f, 0.75f));
+        bgTex.Apply();
+
+        _boxStyle = new GUIStyle(GUI.skin.box);
+        _boxStyle.normal.background = bgTex;
+        _boxStyle.padding = new RectOffset(16, 16, 12, 12);
+
+        _titleStyle = new GUIStyle(GUI.skin.label);
+        _titleStyle.fontSize = _guiFontSize + 4;
+        _titleStyle.fontStyle = FontStyle.Bold;
+        _titleStyle.normal.textColor = Color.white;
+        _titleStyle.alignment = TextAnchor.MiddleCenter;
+
+        _labelStyle = new GUIStyle(GUI.skin.label);
+        _labelStyle.fontSize = _guiFontSize;
+        _labelStyle.normal.textColor = new Color(0.9f, 0.9f, 0.9f);
+        _labelStyle.richText = true;
+
+        _stylesInitialized = true;
+    }
+
+    private void OnGUI()
+    {
+        if (!Application.isPlaying || !_menuActive) return;
+
+        InitStyles();
+
+        string effectColor = _effectEnabled ? "<color=#66FF66>ON</color>" : "<color=#FF6666>OFF</color>";
+
+        float boxWidth = _guiBoxWidth;
+        float contentHeight = 500f;
+        float maxBoxHeight = Mathf.Min(contentHeight, _guiBoxHeight, Screen.height * 0.95f);
+        float x = Screen.width - boxWidth - 10f;
+        float y = Screen.height - maxBoxHeight - 10f;
+        Rect boxRect = new Rect(x, y, boxWidth, maxBoxHeight);
+
+        GUI.Box(boxRect, GUIContent.none, _boxStyle);
+
+        Rect areaRect = new Rect(x + 16, y + 12, boxWidth - 32, maxBoxHeight - 24);
+        GUILayout.BeginArea(areaRect);
+        _scrollPosition = GUILayout.BeginScrollView(_scrollPosition);
+
+        GUILayout.Label("PS1 PostProcess Controls", _titleStyle);
+        GUILayout.Space(10);
+
+        GUILayout.Label($"<b>[{toggleEffectKey}]</b>  Efecto: {effectColor}", _labelStyle);
+        GUILayout.Space(4);
+        GUILayout.Label($"<b>[{pixelSizeDownKey}]</b> / <b>[{pixelSizeUpKey}]</b>  Tamaño píxel: <color=#FFCC00>{_pixelSize:F1}</color>  (1–16)", _labelStyle);
+        GUILayout.Label($"<b>[{colorDepthDownKey}]</b> / <b>[{colorDepthUpKey}]</b>  Prof. color: <color=#FFCC00>{_colorDepth:F0}</color>  (2–256)", _labelStyle);
+        GUILayout.Label($"<b>[{jitterIntensityDownKey}]</b> / <b>[{jitterIntensityUpKey}]</b>  Jitter intens.: <color=#FFCC00>{_jitterIntensity:F4}</color>  (0–0.02)", _labelStyle);
+        GUILayout.Label($"<b>[{jitterSpeedDownKey}]</b> / <b>[{jitterSpeedUpKey}]</b>  Jitter veloc.: <color=#FFCC00>{_jitterSpeed:F1}</color>  (1–60)", _labelStyle);
+        GUILayout.Label($"<b>[{ditherIntensityDownKey}]</b> / <b>[{ditherIntensityUpKey}]</b>  Dither intens.: <color=#FFCC00>{_ditherIntensity:F3}</color>  (0–0.15)", _labelStyle);
+        GUILayout.Space(4);
+        GUILayout.Label($"<b>[{presetAuthenticKey}]</b>  Preset PS1 auténtico", _labelStyle);
+        GUILayout.Label($"<b>[{presetSubtleKey}]</b>  Preset retro sutil", _labelStyle);
+        GUILayout.Space(4);
+        GUILayout.Label($"<b>[{scrollUpKey}]</b> / <b>[{scrollDownKey}]</b>  Scroll menú", _labelStyle);
+        GUILayout.Label($"<b>[{zoomInKey}]</b> / <b>[{zoomOutKey}]</b>  Zoom UI ({_guiFontSize}px)", _labelStyle);
+        GUILayout.Label($"<b>[{uiWidthDecreaseKey}]</b> / <b>[{uiWidthIncreaseKey}]</b>  Ancho UI ({_guiBoxWidth}px)", _labelStyle);
+        GUILayout.Label($"<b>[{uiHeightDecreaseKey}]</b> / <b>[{uiHeightIncreaseKey}]</b>  Alto UI ({_guiBoxHeight}px)", _labelStyle);
+        GUILayout.Space(4);
+        GUILayout.Label($"<color=#888888>[{menuKey}] para cerrar</color>", _labelStyle);
+
+        GUILayout.EndScrollView();
+        GUILayout.EndArea();
     }
 }
 
@@ -199,8 +475,11 @@ public class PS1CameraHook : MonoBehaviour
         EnsureMaterial();
     }
 
+    public bool IsDisabled { get; private set; }
+
     public void PushSettings(float pixelSize, float colorDepth, float jitterIntensity, float jitterSpeed, float ditherIntensity)
     {
+        IsDisabled = false;
         if (_material == null) return;
 
         _material.SetFloat(PropPixelSize, pixelSize);
@@ -209,6 +488,11 @@ public class PS1CameraHook : MonoBehaviour
         _material.SetFloat(PropJitterSpeed, jitterSpeed);
         _material.SetFloat(PropDitherIntensity, ditherIntensity);
         _material.SetFloat(PropTime2, Time.unscaledTime);
+    }
+
+    public void PushDisabled()
+    {
+        IsDisabled = true;
     }
 
     private void EnsureMaterial()
@@ -246,7 +530,7 @@ public class PS1CameraHook : MonoBehaviour
 
     private void OnRenderImage(RenderTexture source, RenderTexture destination)
     {
-        if (_material == null || _owner == null || !_owner.enabled)
+        if (_material == null || _owner == null || !_owner.enabled || IsDisabled)
         {
             Graphics.Blit(source, destination);
             return;
