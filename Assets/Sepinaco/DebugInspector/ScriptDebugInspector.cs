@@ -99,6 +99,7 @@ public class ScriptDebugInspector : MonoBehaviour
     private MonoBehaviour _editTarget;
     private readonly List<FieldEntry> _entries = new List<FieldEntry>();
     private int _prevCursor = -1;
+    private float _lastItemContentBottom;
     private MethodInfo _cachedOnValidate;
 
     private string _textBuf = "";
@@ -119,6 +120,7 @@ public class ScriptDebugInspector : MonoBehaviour
     private const int FontStep = 2;
     private float _boxW = 540f;
     private float _boxH = 560f;
+    private float _renderedH;
 
     private const float LineH = 22f;
     private const int HeaderLinesScripts = 7;
@@ -220,6 +222,27 @@ public class ScriptDebugInspector : MonoBehaviour
             case MenuScreen.Scripts: InputScripts(); break;
             case MenuScreen.Fields:  InputFields();  break;
         }
+
+        ApplyAutoScroll();
+    }
+
+    private void ApplyAutoScroll()
+    {
+        int headerLines, itemCount;
+        switch (_screen)
+        {
+            case MenuScreen.Scripts:
+                headerLines = HeaderLinesScripts;
+                itemCount = _scripts != null ? _scripts.Length : 0;
+                break;
+            case MenuScreen.Fields:
+                headerLines = HeaderLinesFields;
+                itemCount = _entries.Count;
+                break;
+            default: return;
+        }
+        if (itemCount > 0)
+            AutoScroll(_cursor, headerLines, itemCount);
     }
 
     private void InputScripts()
@@ -795,6 +818,7 @@ public class ScriptDebugInspector : MonoBehaviour
 
         float w = _boxW;
         float h = Mathf.Min(_boxH, Screen.height * 0.92f);
+        _renderedH = h;
         float x = 10f;
         float y = (Screen.height - h) * 0.5f;
         Rect box = new Rect(x, y, w, h);
@@ -838,8 +862,6 @@ public class ScriptDebugInspector : MonoBehaviour
         }
         else
         {
-            AutoScroll(_cursor, HeaderLinesScripts, count);
-
             for (int i = 0; i < count; i++)
             {
                 MonoBehaviour s = _scripts[i];
@@ -847,10 +869,12 @@ public class ScriptDebugInspector : MonoBehaviour
                 string prefix = i == _cursor ? "►  " : "    ";
                 GUIStyle style = i == _cursor ? _sSel : _sLabel;
                 GUILayout.Label($"{prefix}<b>{name}</b>", style);
+                if (i == count - 1 && Event.current.type == EventType.Repaint)
+                    _lastItemContentBottom = GUILayoutUtility.GetLastRect().yMax;
             }
         }
 
-        GUILayout.Space(6);
+        GUILayout.Space(_renderedH > 0f ? _renderedH : _boxH);
         DrawFooterHints();
     }
 
@@ -878,8 +902,6 @@ public class ScriptDebugInspector : MonoBehaviour
         }
         else
         {
-            AutoScroll(_cursor, HeaderLinesFields, count);
-
             for (int i = 0; i < count; i++)
             {
                 FieldEntry fe = _entries[i];
@@ -898,10 +920,12 @@ public class ScriptDebugInspector : MonoBehaviour
                 string tag = (!fe.isHeader && fe.readOnly) ? " <color=#666666>[ro]</color>" : "";
                 string headerMark = fe.isHeader ? "▸ " : "";
                 GUILayout.Label($"{prefix}{pad}{headerMark}<b>{fe.label}</b>  {val}{tag}", style);
+                if (i == count - 1 && Event.current.type == EventType.Repaint)
+                    _lastItemContentBottom = GUILayoutUtility.GetLastRect().yMax;
             }
         }
 
-        GUILayout.Space(6);
+        GUILayout.Space(_renderedH > 0f ? _renderedH : _boxH);
         DrawFooterHints();
     }
 
@@ -965,17 +989,39 @@ public class ScriptDebugInspector : MonoBehaviour
 
     private void AutoScroll(int cursor, int headerLines, int itemCount)
     {
-        if (cursor == _prevCursor) return;
+        int prev = _prevCursor;
         _prevCursor = cursor;
+        if (cursor == prev || itemCount == 0) return;
 
-        float viewH = _boxH - 48;
+        float viewH = _renderedH > 0f ? _renderedH - 24f : _boxH - 24f;
         float cursorY = (headerLines + cursor) * LineH;
-        float headerH = headerLines * LineH;
 
-        if (cursorY < _scroll.y + headerH)
-            _scroll.y = Mathf.Max(0f, cursorY - headerH);
-        else if (cursorY + LineH > _scroll.y + viewH)
-            _scroll.y = cursorY + LineH - viewH;
+        bool goingToLast = cursor == itemCount - 1;
+        bool goingToFirst = cursor == 0;
+        bool wrappedDown = prev >= 0 && prev == itemCount - 1 && goingToFirst;
+        bool wrappedUp   = prev >= 0 && prev == 0 && goingToLast;
+        bool isFirstMove = prev < 0;
+
+        if (wrappedDown || (isFirstMove && goingToFirst))
+        {
+            _scroll.y = 0f;
+        }
+        else if (wrappedUp || (isFirstMove && goingToLast))
+        {
+            float targetY = _lastItemContentBottom > 0f
+                ? _lastItemContentBottom
+                : cursorY + LineH;
+            _scroll.y = Mathf.Max(0f, targetY - viewH + LineH);
+        }
+        else if (isFirstMove || cursor > prev)
+        {
+            _scroll.y = Mathf.Max(0f, cursorY - viewH * 0.3f);
+        }
+        else
+        {
+            _scroll.y -= LineH;
+            if (_scroll.y < 0f) _scroll.y = 0f;
+        }
     }
 
     // ═══════════════════════════════════════════════════════════
