@@ -22,34 +22,35 @@ public class ScriptPostProcessingPixelPs1 : MonoBehaviour
     // ──────────────── Pixelación ────────────────
 
     [Header("Pixelación")]
-    [Tooltip("Tamaño de cada 'píxel' en pantalla. Valores más altos = resolución más baja.")]
-    [Range(1f, 16f)]
+    [Tooltip("Tamaño de cada 'píxel' en pantalla. Valores más altos = resolución más baja. Sin límite.")]
     [SerializeField] private float _pixelSize = 4f;
 
     // ──────────────── Color ────────────────
 
     [Header("Profundidad de color")]
-    [Tooltip("Niveles por canal de color. PS1 usaba 32 (5 bits). Valores bajos = más posterización.")]
-    [Range(2f, 256f)]
+    [Tooltip("Niveles por canal de color. PS1 usaba 32 (5 bits). Valores bajos = más posterización. Sin límite.")]
     [SerializeField] private float _colorDepth = 32f;
 
     // ──────────────── Jitter de texturas ────────────────
 
     [Header("Temblor de texturas (Jitter)")]
-    [Tooltip("Intensidad del desplazamiento UV. Simula la inestabilidad de las texturas en PS1.")]
-    [Range(0f, 0.02f)]
+    [Tooltip("Intensidad del desplazamiento UV. Simula la inestabilidad de las texturas en PS1. Sin límite.")]
     [SerializeField] private float _jitterIntensity = 0.002f;
 
-    [Tooltip("Velocidad del temblor. Cuántas veces por segundo cambia el patrón de jitter.")]
-    [Range(1f, 60f)]
+    [Tooltip("Velocidad del temblor. Cuántas veces por segundo cambia el patrón de jitter. Sin límite.")]
     [SerializeField] private float _jitterSpeed = 30f;
 
     // ──────────────── Dithering ────────────────
 
     [Header("Dithering (tramado)")]
-    [Tooltip("Intensidad del patrón de dithering Bayer 4×4. 0 = desactivado.")]
-    [Range(0f, 0.15f)]
+    [Tooltip("Intensidad del patrón de dithering Bayer 4×4. 0 = desactivado. Sin límite.")]
     [SerializeField] private float _ditherIntensity = 0.03f;
+
+    // ──────────────── Límites de rango ────────────────
+
+    [Header("Límites de rango")]
+    [Tooltip("Si está activado, los valores se restringen a los rangos clásicos de PS1. Si no, se permiten valores infinitos.")]
+    [SerializeField] private bool _clampToRange = true;
 
     // ──────────────── Cámara ────────────────
 
@@ -66,6 +67,9 @@ public class ScriptPostProcessingPixelPs1 : MonoBehaviour
     [Header("Controles de efecto (solo funcionan con el menú abierto)")]
     [Tooltip("Tecla para activar/desactivar el efecto completo")]
     public KeyCode toggleEffectKey = KeyCode.Alpha2;
+
+    [Tooltip("Tecla para activar/desactivar el clamp de rango en las variables")]
+    public KeyCode toggleClampKey = KeyCode.C;
 
     [Tooltip("Tecla para aumentar el tamaño de píxel")]
     public KeyCode pixelSizeUpKey = KeyCode.Alpha3;
@@ -208,35 +212,43 @@ public class ScriptPostProcessingPixelPs1 : MonoBehaviour
         if (Input.GetKeyDown(toggleEffectKey))
             _effectEnabled = !_effectEnabled;
 
+        if (Input.GetKeyDown(toggleClampKey))
+        {
+            _clampToRange = !_clampToRange;
+            if (_clampToRange) ApplyClamp();
+        }
+
         if (Input.GetKeyDown(pixelSizeUpKey))
-            _pixelSize = Mathf.Clamp(_pixelSize + pixelSizeStep, 1f, 16f);
+            _pixelSize += pixelSizeStep;
 
         if (Input.GetKeyDown(pixelSizeDownKey))
-            _pixelSize = Mathf.Clamp(_pixelSize - pixelSizeStep, 1f, 16f);
+            _pixelSize -= pixelSizeStep;
 
         if (Input.GetKeyDown(colorDepthUpKey))
-            _colorDepth = Mathf.Clamp(_colorDepth + colorDepthStep, 2f, 256f);
+            _colorDepth += colorDepthStep;
 
         if (Input.GetKeyDown(colorDepthDownKey))
-            _colorDepth = Mathf.Clamp(_colorDepth - colorDepthStep, 2f, 256f);
+            _colorDepth -= colorDepthStep;
 
         if (Input.GetKeyDown(jitterIntensityUpKey))
-            _jitterIntensity = Mathf.Clamp(_jitterIntensity + jitterIntensityStep, 0f, 0.02f);
+            _jitterIntensity += jitterIntensityStep;
 
         if (Input.GetKeyDown(jitterIntensityDownKey))
-            _jitterIntensity = Mathf.Clamp(_jitterIntensity - jitterIntensityStep, 0f, 0.02f);
+            _jitterIntensity -= jitterIntensityStep;
 
         if (Input.GetKeyDown(jitterSpeedUpKey))
-            _jitterSpeed = Mathf.Clamp(_jitterSpeed + jitterSpeedStep, 1f, 60f);
+            _jitterSpeed += jitterSpeedStep;
 
         if (Input.GetKeyDown(jitterSpeedDownKey))
-            _jitterSpeed = Mathf.Clamp(_jitterSpeed - jitterSpeedStep, 1f, 60f);
+            _jitterSpeed -= jitterSpeedStep;
 
         if (Input.GetKeyDown(ditherIntensityUpKey))
-            _ditherIntensity = Mathf.Clamp(_ditherIntensity + ditherIntensityStep, 0f, 0.15f);
+            _ditherIntensity += ditherIntensityStep;
 
         if (Input.GetKeyDown(ditherIntensityDownKey))
-            _ditherIntensity = Mathf.Clamp(_ditherIntensity - ditherIntensityStep, 0f, 0.15f);
+            _ditherIntensity -= ditherIntensityStep;
+
+        if (_clampToRange) ApplyClamp();
 
         if (Input.GetKeyDown(presetAuthenticKey))
             ApplyAuthenticPS1Preset();
@@ -315,36 +327,58 @@ public class ScriptPostProcessingPixelPs1 : MonoBehaviour
         }
     }
 
+    // ──────────────── Clamp ────────────────
+
+    private const float PixelSizeMin = 1f;
+    private const float PixelSizeMax = 16f;
+    private const float ColorDepthMin = 2f;
+    private const float ColorDepthMax = 256f;
+    private const float JitterIntensityMin = 0f;
+    private const float JitterIntensityMax = 0.02f;
+    private const float JitterSpeedMin = 1f;
+    private const float JitterSpeedMax = 60f;
+    private const float DitherIntensityMin = 0f;
+    private const float DitherIntensityMax = 0.15f;
+
+    private void ApplyClamp()
+    {
+        _pixelSize = Mathf.Clamp(_pixelSize, PixelSizeMin, PixelSizeMax);
+        _colorDepth = Mathf.Clamp(_colorDepth, ColorDepthMin, ColorDepthMax);
+        _jitterIntensity = Mathf.Clamp(_jitterIntensity, JitterIntensityMin, JitterIntensityMax);
+        _jitterSpeed = Mathf.Clamp(_jitterSpeed, JitterSpeedMin, JitterSpeedMax);
+        _ditherIntensity = Mathf.Clamp(_ditherIntensity, DitherIntensityMin, DitherIntensityMax);
+    }
+
     // ──────────────── API pública ────────────────
 
     /// <summary>Ajusta el tamaño de píxel en runtime.</summary>
     public void SetPixelSize(float size)
     {
-        _pixelSize = Mathf.Clamp(size, 1f, 16f);
+        _pixelSize = _clampToRange ? Mathf.Clamp(size, PixelSizeMin, PixelSizeMax) : size;
     }
 
     /// <summary>Ajusta la profundidad de color en runtime.</summary>
     public void SetColorDepth(float levels)
     {
-        _colorDepth = Mathf.Clamp(levels, 2f, 256f);
+        _colorDepth = _clampToRange ? Mathf.Clamp(levels, ColorDepthMin, ColorDepthMax) : levels;
     }
 
     /// <summary>Ajusta la intensidad del jitter en runtime.</summary>
     public void SetJitterIntensity(float intensity)
     {
-        _jitterIntensity = Mathf.Clamp(intensity, 0f, 0.02f);
+        _jitterIntensity = _clampToRange ? Mathf.Clamp(intensity, JitterIntensityMin, JitterIntensityMax) : intensity;
     }
 
     /// <summary>Ajusta la velocidad del jitter en runtime.</summary>
     public void SetJitterSpeed(float speed)
     {
-        _jitterSpeed = Mathf.Clamp(speed, 1f, 60f);
+        _jitterSpeed = _clampToRange ? Mathf.Clamp(speed, JitterSpeedMin, JitterSpeedMax) : speed;
     }
 
     /// <summary>Ajusta la intensidad del dithering en runtime.</summary>
     public void SetDitherIntensity(float intensity)
     {
-        _ditherIntensity = Mathf.Clamp(intensity, 0f, 0.15f);
+        _ditherIntensity = _clampToRange ? Mathf.Clamp(intensity, DitherIntensityMin, DitherIntensityMax) : intensity;
     }
 
     /// <summary>Aplica un preset "PS1 auténtico" con los valores más fieles a la consola.</summary>
@@ -421,13 +455,21 @@ public class ScriptPostProcessingPixelPs1 : MonoBehaviour
         GUILayout.Label("PS1 PostProcess Controls", _titleStyle);
         GUILayout.Space(10);
 
+        string clampColor = _clampToRange ? "<color=#66FF66>ON</color>" : "<color=#FF6666>OFF</color>";
+        string rangePixel = _clampToRange ? $"({PixelSizeMin}–{PixelSizeMax})" : "(-∞ … +∞)";
+        string rangeColor = _clampToRange ? $"({ColorDepthMin}–{ColorDepthMax})" : "(-∞ … +∞)";
+        string rangeJitterI = _clampToRange ? $"({JitterIntensityMin}–{JitterIntensityMax})" : "(-∞ … +∞)";
+        string rangeJitterS = _clampToRange ? $"({JitterSpeedMin}–{JitterSpeedMax})" : "(-∞ … +∞)";
+        string rangeDither = _clampToRange ? $"({DitherIntensityMin}–{DitherIntensityMax})" : "(-∞ … +∞)";
+
         GUILayout.Label($"<b>[{toggleEffectKey}]</b>  Efecto: {effectColor}", _labelStyle);
+        GUILayout.Label($"<b>[{toggleClampKey}]</b>  Limitar rango: {clampColor}", _labelStyle);
         GUILayout.Space(4);
-        GUILayout.Label($"<b>[{pixelSizeDownKey}]</b> / <b>[{pixelSizeUpKey}]</b>  Tamaño píxel: <color=#FFCC00>{_pixelSize:F1}</color>  (1–16)", _labelStyle);
-        GUILayout.Label($"<b>[{colorDepthDownKey}]</b> / <b>[{colorDepthUpKey}]</b>  Prof. color: <color=#FFCC00>{_colorDepth:F0}</color>  (2–256)", _labelStyle);
-        GUILayout.Label($"<b>[{jitterIntensityDownKey}]</b> / <b>[{jitterIntensityUpKey}]</b>  Jitter intens.: <color=#FFCC00>{_jitterIntensity:F4}</color>  (0–0.02)", _labelStyle);
-        GUILayout.Label($"<b>[{jitterSpeedDownKey}]</b> / <b>[{jitterSpeedUpKey}]</b>  Jitter veloc.: <color=#FFCC00>{_jitterSpeed:F1}</color>  (1–60)", _labelStyle);
-        GUILayout.Label($"<b>[{ditherIntensityDownKey}]</b> / <b>[{ditherIntensityUpKey}]</b>  Dither intens.: <color=#FFCC00>{_ditherIntensity:F3}</color>  (0–0.15)", _labelStyle);
+        GUILayout.Label($"<b>[{pixelSizeDownKey}]</b> / <b>[{pixelSizeUpKey}]</b>  Tamaño píxel: <color=#FFCC00>{_pixelSize:F1}</color>  {rangePixel}", _labelStyle);
+        GUILayout.Label($"<b>[{colorDepthDownKey}]</b> / <b>[{colorDepthUpKey}]</b>  Prof. color: <color=#FFCC00>{_colorDepth:F0}</color>  {rangeColor}", _labelStyle);
+        GUILayout.Label($"<b>[{jitterIntensityDownKey}]</b> / <b>[{jitterIntensityUpKey}]</b>  Jitter intens.: <color=#FFCC00>{_jitterIntensity:F4}</color>  {rangeJitterI}", _labelStyle);
+        GUILayout.Label($"<b>[{jitterSpeedDownKey}]</b> / <b>[{jitterSpeedUpKey}]</b>  Jitter veloc.: <color=#FFCC00>{_jitterSpeed:F1}</color>  {rangeJitterS}", _labelStyle);
+        GUILayout.Label($"<b>[{ditherIntensityDownKey}]</b> / <b>[{ditherIntensityUpKey}]</b>  Dither intens.: <color=#FFCC00>{_ditherIntensity:F3}</color>  {rangeDither}", _labelStyle);
         GUILayout.Space(4);
         GUILayout.Label($"<b>[{presetAuthenticKey}]</b>  Preset PS1 auténtico", _labelStyle);
         GUILayout.Label($"<b>[{presetSubtleKey}]</b>  Preset retro sutil", _labelStyle);
