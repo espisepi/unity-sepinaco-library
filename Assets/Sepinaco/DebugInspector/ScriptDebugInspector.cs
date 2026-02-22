@@ -82,6 +82,19 @@ public class ScriptDebugInspector : MonoBehaviour
     [Tooltip("Tecla para disminuir el tamaño de las letras")]
     public KeyCode zoomOutKey = KeyCode.KeypadMinus;
 
+    [Header("Ráfaga de pulsaciones (Key Repeat)")]
+    [Tooltip("Activa la repetición automática de pulsaciones al mantener presionada " +
+             "una tecla de navegación o modificación de valores.")]
+    public bool enableKeyRepeat = true;
+
+    [Tooltip("Tiempo en segundos antes de que comience la repetición al mantener una tecla.")]
+    [Range(0.1f, 1f)]
+    public float keyRepeatDelay = 0.4f;
+
+    [Tooltip("Intervalo en segundos entre cada repetición mientras se mantiene la tecla.")]
+    [Range(0.02f, 0.3f)]
+    public float keyRepeatInterval = 0.08f;
+
     [Header("Callbacks")]
     [Tooltip("Llamar a OnValidate() del script objetivo tras modificar un campo.\n" +
              "Permite que scripts como ScriptPhysicsManager apliquen los cambios automáticamente.")]
@@ -104,6 +117,10 @@ public class ScriptDebugInspector : MonoBehaviour
 
     private string _textBuf = "";
     private int _textIdx;
+
+    // ───────────────────── Key Repeat ─────────────────────
+
+    private readonly Dictionary<KeyCode, float> _keyNextRepeat = new Dictionary<KeyCode, float>();
 
     // ───────────────────────── GUI ─────────────────────────
 
@@ -180,6 +197,36 @@ public class ScriptDebugInspector : MonoBehaviour
     }
 
     // ═══════════════════════════════════════════════════════════
+    //  Key Repeat
+    // ═══════════════════════════════════════════════════════════
+
+    /// <summary>
+    /// Sustituye a Input.GetKeyDown para teclas de navegación/modificación.
+    /// Devuelve true en el frame de la pulsación inicial y, si enableKeyRepeat
+    /// está activo, también en cada intervalo de repetición mientras la tecla
+    /// se mantiene presionada.
+    /// </summary>
+    private bool IsKeyTriggered(KeyCode key)
+    {
+        if (Input.GetKeyDown(key))
+        {
+            if (enableKeyRepeat)
+                _keyNextRepeat[key] = Time.unscaledTime + keyRepeatDelay;
+            return true;
+        }
+
+        if (enableKeyRepeat && Input.GetKey(key)
+            && _keyNextRepeat.TryGetValue(key, out float nextTime)
+            && Time.unscaledTime >= nextTime)
+        {
+            _keyNextRepeat[key] = Time.unscaledTime + keyRepeatInterval;
+            return true;
+        }
+
+        return false;
+    }
+
+    // ═══════════════════════════════════════════════════════════
     //  Update — input
     // ═══════════════════════════════════════════════════════════
 
@@ -200,12 +247,12 @@ public class ScriptDebugInspector : MonoBehaviour
         if (!_menuOpen) return;
         if (_screen == MenuScreen.TextEdit) return;
 
-        if (Input.GetKeyDown(zoomInKey))
+        if (IsKeyTriggered(zoomInKey))
         {
             _fontSize = Mathf.Min(_fontSize + FontStep, FontMax);
             _stylesReady = false;
         }
-        if (Input.GetKeyDown(zoomOutKey))
+        if (IsKeyTriggered(zoomOutKey))
         {
             _fontSize = Mathf.Max(_fontSize - FontStep, FontMin);
             _stylesReady = false;
@@ -250,9 +297,9 @@ public class ScriptDebugInspector : MonoBehaviour
         int count = _scripts != null ? _scripts.Length : 0;
         if (count == 0) return;
 
-        if (Input.GetKeyDown(navDownKey))
+        if (IsKeyTriggered(navDownKey))
             _cursor = (_cursor + 1) % count;
-        if (Input.GetKeyDown(navUpKey))
+        if (IsKeyTriggered(navUpKey))
             _cursor = (_cursor - 1 + count) % count;
 
         if (Input.GetKeyDown(confirmKey))
@@ -299,9 +346,9 @@ public class ScriptDebugInspector : MonoBehaviour
         int count = _entries.Count;
         if (count == 0) return;
 
-        if (Input.GetKeyDown(navDownKey))
+        if (IsKeyTriggered(navDownKey))
             _cursor = (_cursor + 1) % count;
-        if (Input.GetKeyDown(navUpKey))
+        if (IsKeyTriggered(navUpKey))
             _cursor = (_cursor - 1 + count) % count;
 
         FieldEntry fe = _entries[_cursor];
@@ -313,7 +360,7 @@ public class ScriptDebugInspector : MonoBehaviour
 
         if (vt == typeof(bool))
         {
-            if (Input.GetKeyDown(confirmKey) || Input.GetKeyDown(valueUpKey) || Input.GetKeyDown(valueDownKey))
+            if (Input.GetKeyDown(confirmKey) || IsKeyTriggered(valueUpKey) || IsKeyTriggered(valueDownKey))
             {
                 if (cur is bool b) ApplySet(fe, !b);
             }
@@ -332,8 +379,8 @@ public class ScriptDebugInspector : MonoBehaviour
             if (cur is int iv)
             {
                 int s = fast ? intFastStep : intStep;
-                if (Input.GetKeyDown(valueUpKey))   ApplySet(fe, iv + s);
-                if (Input.GetKeyDown(valueDownKey)) ApplySet(fe, iv - s);
+                if (IsKeyTriggered(valueUpKey))   ApplySet(fe, iv + s);
+                if (IsKeyTriggered(valueDownKey)) ApplySet(fe, iv - s);
             }
         }
         else if (vt == typeof(long))
@@ -341,8 +388,8 @@ public class ScriptDebugInspector : MonoBehaviour
             if (cur is long lv)
             {
                 long s = fast ? intFastStep : intStep;
-                if (Input.GetKeyDown(valueUpKey))   ApplySet(fe, lv + s);
-                if (Input.GetKeyDown(valueDownKey)) ApplySet(fe, lv - s);
+                if (IsKeyTriggered(valueUpKey))   ApplySet(fe, lv + s);
+                if (IsKeyTriggered(valueDownKey)) ApplySet(fe, lv - s);
             }
         }
         else if (vt == typeof(float))
@@ -350,8 +397,8 @@ public class ScriptDebugInspector : MonoBehaviour
             if (cur is float fv)
             {
                 float s = fast ? floatFastStep : floatStep;
-                if (Input.GetKeyDown(valueUpKey))   ApplySet(fe, fv + s);
-                if (Input.GetKeyDown(valueDownKey)) ApplySet(fe, fv - s);
+                if (IsKeyTriggered(valueUpKey))   ApplySet(fe, fv + s);
+                if (IsKeyTriggered(valueDownKey)) ApplySet(fe, fv - s);
             }
         }
         else if (vt == typeof(double))
@@ -359,8 +406,8 @@ public class ScriptDebugInspector : MonoBehaviour
             if (cur is double dv)
             {
                 double s = fast ? floatFastStep : floatStep;
-                if (Input.GetKeyDown(valueUpKey))   ApplySet(fe, dv + s);
-                if (Input.GetKeyDown(valueDownKey)) ApplySet(fe, dv - s);
+                if (IsKeyTriggered(valueUpKey))   ApplySet(fe, dv + s);
+                if (IsKeyTriggered(valueDownKey)) ApplySet(fe, dv - s);
             }
         }
         else if (vt.IsEnum)
@@ -368,9 +415,9 @@ public class ScriptDebugInspector : MonoBehaviour
             Array vals = Enum.GetValues(vt);
             int idx = cur != null ? Array.IndexOf(vals, cur) : -1;
             if (idx < 0) idx = 0;
-            if (Input.GetKeyDown(valueUpKey) || Input.GetKeyDown(confirmKey))
+            if (IsKeyTriggered(valueUpKey) || Input.GetKeyDown(confirmKey))
                 ApplySet(fe, vals.GetValue((idx + 1) % vals.Length));
-            if (Input.GetKeyDown(valueDownKey))
+            if (IsKeyTriggered(valueDownKey))
                 ApplySet(fe, vals.GetValue((idx - 1 + vals.Length) % vals.Length));
         }
     }
