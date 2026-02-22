@@ -4,6 +4,18 @@ using UnityEngine.Video;
 
 public class ScriptVideoclipsManager : MonoBehaviour
 {
+    [Header("Audio del vídeo")]
+    [Tooltip("Mutea o desmutea el audio del vídeo. Modificable desde ScriptDebugInspector.")]
+    [SerializeField] private bool muteAudio;
+
+    [Header("Texturas de vídeo")]
+    [Tooltip("Activa o desactiva el reemplazo de texturas por vídeo. Modificable desde ScriptDebugInspector.")]
+    [SerializeField] private bool useVideoTextures;
+
+    [Header("Vídeo actual")]
+    [Tooltip("Índice del vídeo que se reproduce actualmente. Modificable desde ScriptDebugInspector.")]
+    [SerializeField] private int currentVideoIndex;
+
     [Header("Video Clips")]
     [Tooltip("Arrastra aquí los VideoClip desde el editor")]
     public VideoClip[] videoClips;
@@ -77,7 +89,9 @@ public class ScriptVideoclipsManager : MonoBehaviour
     private bool hasVideoClips;
     private bool texturesReplaced;
     private bool isMuted;
-    private int currentVideoIndex;
+    private int _lastAppliedVideoIndex = -1;
+    private bool _lastAppliedUseVideoTextures;
+    private bool _lastAppliedMuteAudio;
     private bool menuActive;
     private Vector2 scrollPosition;
 
@@ -128,6 +142,8 @@ public class ScriptVideoclipsManager : MonoBehaviour
         BuildStaticGUIStrings();
 
         isMuted = startMuted;
+        muteAudio = isMuted;
+        _lastAppliedMuteAudio = isMuted;
         audioSource.mute = isMuted;
 
         currentVideoIndex = 0;
@@ -335,9 +351,39 @@ public class ScriptVideoclipsManager : MonoBehaviour
         videoPlayer.clip = videoClips[index];
         videoPlayer.Play();
         currentVideoIndex = index;
+        _lastAppliedVideoIndex = index;
         guiStringsDirty = true;
 
         Debug.Log($"[ScriptVideoclipsManager] Reproduciendo vídeo {index}: {videoClips[index].name}");
+    }
+
+    public void OnValidate()
+    {
+        if (!Application.isPlaying || !hasVideoClips || videoPlayer == null) return;
+        if (videoClips == null || videoClips.Length == 0) return;
+
+        if (muteAudio != _lastAppliedMuteAudio)
+        {
+            isMuted = muteAudio;
+            audioSource.mute = isMuted;
+            _lastAppliedMuteAudio = muteAudio;
+            guiStringsDirty = true;
+            Debug.Log($"[ScriptVideoclipsManager] Audio {(isMuted ? "muteado" : "activado")}.");
+        }
+
+        if (useVideoTextures != _lastAppliedUseVideoTextures)
+        {
+            if (useVideoTextures)
+                ReplaceSceneTextures();
+            else
+                RestoreOriginalTextures();
+        }
+
+        int len = videoClips.Length;
+        currentVideoIndex = ((currentVideoIndex % len) + len) % len;
+
+        if (currentVideoIndex != _lastAppliedVideoIndex)
+            PlayVideo(currentVideoIndex);
     }
 
     void NextVideo()
@@ -363,6 +409,8 @@ public class ScriptVideoclipsManager : MonoBehaviour
         }
 
         texturesReplaced = true;
+        useVideoTextures = true;
+        _lastAppliedUseVideoTextures = true;
         guiStringsDirty = true;
         Debug.Log("[ScriptVideoclipsManager] Texturas reemplazadas por vídeo.");
     }
@@ -379,6 +427,8 @@ public class ScriptVideoclipsManager : MonoBehaviour
         }
 
         texturesReplaced = false;
+        useVideoTextures = false;
+        _lastAppliedUseVideoTextures = false;
         guiStringsDirty = true;
         Debug.Log("[ScriptVideoclipsManager] Texturas originales restauradas.");
     }
@@ -387,6 +437,8 @@ public class ScriptVideoclipsManager : MonoBehaviour
     {
         isMuted = !isMuted;
         audioSource.mute = isMuted;
+        muteAudio = isMuted;
+        _lastAppliedMuteAudio = isMuted;
         guiStringsDirty = true;
         Debug.Log($"[ScriptVideoclipsManager] Audio {(isMuted ? "muteado" : "activado")}.");
     }
