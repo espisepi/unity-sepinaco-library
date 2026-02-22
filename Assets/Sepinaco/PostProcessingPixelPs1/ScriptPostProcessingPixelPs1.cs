@@ -46,6 +46,12 @@ public class ScriptPostProcessingPixelPs1 : MonoBehaviour
     [Tooltip("Intensidad del patrón de dithering Bayer 4×4. 0 = desactivado. Sin límite.")]
     [SerializeField] private float _ditherIntensity = 0.03f;
 
+    // ──────────────── Estado inicial del efecto ────────────────
+
+    [Header("Estado inicial del efecto")]
+    [Tooltip("Si está activado, el efecto se aplica al iniciar la escena. Se puede alternar en runtime con la tecla de efecto.")]
+    [SerializeField] private bool _effectEnabledOnStart = true;
+
     // ──────────────── Límites de rango ────────────────
 
     [Header("Límites de rango")]
@@ -178,6 +184,11 @@ public class ScriptPostProcessingPixelPs1 : MonoBehaviour
     private const float GuiBoxWidthMax = 1200f;
     private const float GuiBoxHeightMin = 100f;
     private const float GuiBoxHeightMax = 1200f;
+
+    private void Start()
+    {
+        _effectEnabled = _effectEnabledOnStart;
+    }
 
     private void OnEnable()
     {
