@@ -8,3 +8,9 @@ Crear un builder escenario para construir escenarios en runtime y guardarlos y c
 
 Crear script que añada un gameobject de una esfera
 que ocupe todo el mapa sin fisicas para verla como si fuese un cielo desde la escena. La esfera tendra de atributos configurables desde el editor de unity la opción de que haga una rotación continua o no la haga junto con los valores modificables de velocidad y dirección de la rotación. También tendrá otro atributo modificable desde el editor de unity para mostrar o no mostrar visualmente la esfera en la escena. También tendrá atributos para modificar la posición, escala y rotación de la esfera. Y tendrá un atributo para poder cambiar la esfera por un cubo o cualquier otro objeto por defecto de unity o un mesh u objeto añadido al array de todos los elementos que hay para reemplazar la esfera. Teniendo definidos algunos por defecto, que son los que vienen por defecto en unity y dando la posibilidad de añadir más o eliminarlos respectivamente desde el menu del editor de unity.
+
+========
+
+Mostrarle a la ia el codigo de react de videopoints
+(pegar el proyecto en este workspace y no trackearlo con git)
+y decirle que me haga una replica del mismo efecto con un script que añada a un gameobject para crear un elemento visual shader mostrando el video que se esté ejecutando en el script ScriptVideoclipsManager (para ello que busque el componente video en la escena para que no dependa del script) y lo muestre con el efecto de los puntos que se realiza en los shaders de webgl. Hacer todos los atributos del shader modificables desde el editor.
