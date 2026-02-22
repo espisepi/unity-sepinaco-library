@@ -14,3 +14,8 @@ que ocupe todo el mapa sin fisicas para verla como si fuese un cielo desde la es
 Mostrarle a la ia el codigo de react de videopoints
 (pegar el proyecto en este workspace y no trackearlo con git)
 y decirle que me haga una replica del mismo efecto con un script que añada a un gameobject para crear un elemento visual shader mostrando el video que se esté ejecutando en el script ScriptVideoclipsManager (para ello que busque el componente video en la escena para que no dependa del script) y lo muestre con el efecto de los puntos que se realiza en los shaders de webgl. Hacer todos los atributos del shader modificables desde el editor.
+
+==========
+
+
+Añadir un script que se asocie a un gameobject para mostrar una vista ui en mobile para simular pulsando botones en mobile a las teclas de PC asociadas a las configuraciones y desplazamientos del menu debug o de cualquier script que se le añada al script creado para poder simular pulsar las teclas en la build de mobile
