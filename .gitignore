@@ -5,6 +5,10 @@
 !.gitignore
 !.gitattributes
 
+# Keep Documentation folder
+!Docs/
+!Docs.meta
+
 # Keep Packages (needed to open the project correctly)
 !Packages/
 

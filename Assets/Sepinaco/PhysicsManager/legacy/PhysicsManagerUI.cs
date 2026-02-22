@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using Sepinaco.SceneTools;
 using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.UI;
@@ -14,7 +15,7 @@ using UnityEngine.UI;
 public class PhysicsManagerUI : MonoBehaviour
 {
     [Header("Referencias")]
-    [SerializeField] private ScriptPhysicsManager physicsManager;
+    [SerializeField] private PhysicsManager physicsManager;
 
     [Header("Tecla Show/Hide (siempre activa)")]
     [SerializeField] private KeyCode keyToggleUI = KeyCode.F1;

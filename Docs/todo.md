@@ -1,0 +1,2 @@
+
+Pedirle a cursor que refactorice y limpie el codigo de cada script, separandolo por funcionalidades en distintos archivos para poder crear un asset en la store de unity con la mejor documentacion posible y abierto a todo tipo de configuracion y modificacion.
