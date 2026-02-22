@@ -230,6 +230,13 @@ public class ScriptObjectsManager : MonoBehaviour
         {
             if (entry.target == null) continue;
             entry.target.SetActive(entry.isActive);
+            OnTargetStateChanged?.Invoke(entry.target, entry.isActive);
+        }
+
+        if (Application.isPlaying)
+        {
+            var vcm = FindObjectOfType<ScriptVideoclipsManager>();
+            if (vcm != null) vcm.RefreshTexturesForManagedObjects();
         }
     }
 

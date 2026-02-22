@@ -134,10 +134,13 @@ public class ScriptVideoclipsManager : MonoBehaviour
 
         hasVideoClips = true;
 
+        objectsManager = FindObjectOfType<ScriptObjectsManager>();
+
         StoreOriginalMaterials();
         SetupRenderTexture();
         SetupVideoPlayer();
         SetupAudioSource();
+        StoreRenderersFromObjectsManagerTargets();
         BuildVideoMaterialArrays();
         BuildStaticGUIStrings();
 
@@ -149,10 +152,9 @@ public class ScriptVideoclipsManager : MonoBehaviour
         currentVideoIndex = 0;
         PlayVideo(currentVideoIndex);
 
-        if (replaceTexturesOnStart)
+        if (replaceTexturesOnStart || useVideoTextures)
             ReplaceSceneTextures();
 
-        objectsManager = FindObjectOfType<ScriptObjectsManager>();
         if (objectsManager != null)
             objectsManager.OnTargetStateChanged += OnObjectTargetStateChanged;
     }
@@ -232,6 +234,8 @@ public class ScriptVideoclipsManager : MonoBehaviour
 
     void RefreshRenderersIfNeeded()
     {
+        StoreRenderersFromObjectsManagerTargets();
+
         Renderer[] renderers = FindObjectsOfType<Renderer>();
         if (renderers.Length == cachedRendererCount) return;
 
@@ -257,25 +261,38 @@ public class ScriptVideoclipsManager : MonoBehaviour
     {
         if (!active || obj == null || videoMaterial == null) return;
 
-        Renderer[] renderers = obj.GetComponentsInChildren<Renderer>(true);
-        foreach (Renderer rend in renderers)
+        if (texturesReplaced)
+            ReplaceSceneTextures();
+    }
+
+    void StoreRenderersFromObjectsManagerTargets()
+    {
+        if (objectsManager == null) return;
+
+        for (int i = 0; i < objectsManager.TargetCount; i++)
         {
-            if (originalMaterials.ContainsKey(rend)) continue;
+            ObjectTarget t = objectsManager.GetTarget(i);
+            if (t == null || t.target == null) continue;
 
-            Material[] copy = new Material[rend.sharedMaterials.Length];
-            System.Array.Copy(rend.sharedMaterials, copy, copy.Length);
-            originalMaterials[rend] = copy;
+            Renderer[] renderers = t.target.GetComponentsInChildren<Renderer>(true);
+            foreach (Renderer rend in renderers)
+            {
+                if (rend.gameObject == gameObject) continue;
+                if (originalMaterials.ContainsKey(rend)) continue;
 
-            Material[] mats = new Material[copy.Length];
-            for (int i = 0; i < mats.Length; i++)
-                mats[i] = videoMaterial;
-            videoMaterialArrays[rend] = mats;
+                Material[] copy = new Material[rend.sharedMaterials.Length];
+                System.Array.Copy(rend.sharedMaterials, copy, copy.Length);
+                originalMaterials[rend] = copy;
 
-            if (texturesReplaced)
-                rend.sharedMaterials = mats;
+                if (videoMaterial != null)
+                {
+                    Material[] mats = new Material[copy.Length];
+                    for (int j = 0; j < mats.Length; j++)
+                        mats[j] = videoMaterial;
+                    videoMaterialArrays[rend] = mats;
+                }
+            }
         }
-
-        cachedRendererCount = FindObjectsOfType<Renderer>().Length;
     }
 
     void BuildVideoMaterialArrays()
@@ -355,6 +372,14 @@ public class ScriptVideoclipsManager : MonoBehaviour
         guiStringsDirty = true;
 
         Debug.Log($"[ScriptVideoclipsManager] Reproduciendo vídeo {index}: {videoClips[index].name}");
+    }
+
+    public void RefreshTexturesForManagedObjects()
+    {
+        if (!hasVideoClips || videoMaterial == null) return;
+
+        if (texturesReplaced)
+            ReplaceSceneTextures();
     }
 
     public void OnValidate()
