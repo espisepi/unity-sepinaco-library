@@ -2,7 +2,7 @@ quiero crear un script que lo asocie a un gameobject y le incluya al script crea
 
 ======
 
-Crear un builder escenario para construir escenarios en runtime y guardarlos y cargarlos y usarlos. Le añado al script los gameobject que puedo crear, eliminar y modificar dentro del juego
+Crear un script que lo asocie a un gameobject para crear un builder escenario para construir escenarios en runtime y guardarlos y cargarlos y usarlos. Le añado al script los gameobject que puedo crear, eliminar y modificar dentro del juego en un atributo array modificable desde el editor de unity. Y a parte por defecto me muestra todos los gameobjects de la escena para poder añadir nuevos o eliminar los que ya tenemos. Quiero un atributo editable desde el editor de unity para activar o desactivar el modo builder. Cuando activo el modo builder, tengo el control de la cámara en modo dios (tal y como puedo moverme por el editor de unity, con los mismos controles) para poder ver el escenario y viajar por el escenario para modificarlo comodamente.
 
 ========
 
