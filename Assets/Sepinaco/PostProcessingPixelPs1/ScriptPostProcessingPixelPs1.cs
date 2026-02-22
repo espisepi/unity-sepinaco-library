@@ -64,6 +64,11 @@ public class ScriptPostProcessingPixelPs1 : MonoBehaviour
     [Tooltip("Cámara sobre la que aplicar el efecto. Si se deja vacío, se usa Camera.main.")]
     [SerializeField] private Camera _targetCamera;
 
+    [Header("Shader")]
+    [Tooltip("Referencia directa al shader PS1PostProcess. Necesaria para que funcione en builds. " +
+             "Si se deja vacío se intenta Shader.Find como fallback (solo funciona en el editor).")]
+    [SerializeField] private Shader _ps1Shader;
+
     // ──────────────── Menú ────────────────
 
     [Header("Menú")]
@@ -322,7 +327,7 @@ public class ScriptPostProcessingPixelPs1 : MonoBehaviour
         if (_hook == null)
             _hook = cam.gameObject.AddComponent<PS1CameraHook>();
 
-        _hook.Init(this);
+        _hook.Init(this, _ps1Shader);
     }
 
     private void DetachHook()
@@ -509,6 +514,7 @@ public class PS1CameraHook : MonoBehaviour
 {
     private ScriptPostProcessingPixelPs1 _owner;
     private Material _material;
+    private Shader _shaderRef;
 
     private static readonly string ShaderName = "Sepinaco/PS1PostProcess";
 
@@ -521,9 +527,10 @@ public class PS1CameraHook : MonoBehaviour
 
     public bool IsValid => _owner != null && _material != null;
 
-    public void Init(ScriptPostProcessingPixelPs1 owner)
+    public void Init(ScriptPostProcessingPixelPs1 owner, Shader shader)
     {
         _owner = owner;
+        _shaderRef = shader;
         hideFlags = HideFlags.HideAndDontSave;
         EnsureMaterial();
     }
@@ -552,11 +559,16 @@ public class PS1CameraHook : MonoBehaviour
     {
         if (_material != null) return;
 
-        Shader shader = Shader.Find(ShaderName);
+        Shader shader = _shaderRef;
+
+        if (shader == null)
+            shader = Shader.Find(ShaderName);
+
         if (shader == null)
         {
             Debug.LogError($"[PS1 PostProcess] No se encontró el shader '{ShaderName}'. " +
-                           "Asegúrate de que el archivo PS1PostProcess.shader está en la carpeta Shaders.");
+                           "Asigna el shader PS1PostProcess en el Inspector del componente ScriptPostProcessingPixelPs1, " +
+                           "o asegúrate de que esté en la lista 'Always Included Shaders' de Project Settings > Graphics.");
             return;
         }
 
