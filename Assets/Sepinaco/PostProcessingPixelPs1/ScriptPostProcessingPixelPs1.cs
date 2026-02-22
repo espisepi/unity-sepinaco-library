@@ -19,6 +19,15 @@ using UnityEngine;
 [ExecuteInEditMode]
 public class ScriptPostProcessingPixelPs1 : MonoBehaviour
 {
+    // ──────────────── Control desde Debug Inspector ────────────────
+
+    [Header("Control desde Debug Inspector")]
+    [Tooltip("Activa/desactiva el efecto de post-procesado PS1 en runtime (equivalente a la tecla de toggle).")]
+    [SerializeField] private bool _debugToggleEffect = true;
+
+    [Tooltip("Ponlo en True para restaurar los valores por defecto del efecto PS1 (preset auténtico). Se desactiva solo tras aplicar.")]
+    [SerializeField] private bool _debugRestoreDefaults;
+
     // ──────────────── Pixelación ────────────────
 
     [Header("Pixelación")]
@@ -190,9 +199,22 @@ public class ScriptPostProcessingPixelPs1 : MonoBehaviour
     private const float GuiBoxHeightMin = 100f;
     private const float GuiBoxHeightMax = 1200f;
 
+    private void OnValidate()
+    {
+        if (_debugRestoreDefaults)
+        {
+            _debugRestoreDefaults = false;
+            ApplyAuthenticPS1Preset();
+            return;
+        }
+
+        _effectEnabled = _debugToggleEffect;
+    }
+
     private void Start()
     {
         _effectEnabled = _effectEnabledOnStart;
+        _debugToggleEffect = _effectEnabled;
     }
 
     private void OnEnable()
@@ -226,7 +248,10 @@ public class ScriptPostProcessingPixelPs1 : MonoBehaviour
         if (!_menuActive) return;
 
         if (Input.GetKeyDown(toggleEffectKey))
+        {
             _effectEnabled = !_effectEnabled;
+            _debugToggleEffect = _effectEnabled;
+        }
 
         if (Input.GetKeyDown(toggleClampKey))
         {
@@ -406,6 +431,7 @@ public class ScriptPostProcessingPixelPs1 : MonoBehaviour
         _jitterSpeed = 30f;
         _ditherIntensity = 0.03f;
         _effectEnabled = true;
+        _debugToggleEffect = true;
     }
 
     /// <summary>Aplica un preset más sutil, útil para juegos que quieren un toque retro sin ser extremo.</summary>
@@ -417,6 +443,7 @@ public class ScriptPostProcessingPixelPs1 : MonoBehaviour
         _jitterSpeed = 15f;
         _ditherIntensity = 0.015f;
         _effectEnabled = true;
+        _debugToggleEffect = true;
     }
 
     // ──────────────── OnGUI Menu ────────────────
