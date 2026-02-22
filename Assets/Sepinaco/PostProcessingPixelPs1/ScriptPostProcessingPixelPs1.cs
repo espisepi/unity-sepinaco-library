@@ -13,7 +13,7 @@ using UnityEngine;
 /// El script localiza automáticamente Camera.main y le inyecta un componente
 /// auxiliar invisible que ejecuta el post-procesado. No es necesario tocar la cámara.
 ///
-/// En runtime, pulsa F1 para abrir un panel OnGUI (arriba-derecha) con controles
+/// En runtime, pulsa 1 para abrir un panel OnGUI (arriba-derecha) con controles
 /// interactivos para modificar todos los parámetros del efecto.
 /// </summary>
 [ExecuteInEditMode]
@@ -65,44 +65,44 @@ public class ScriptPostProcessingPixelPs1 : MonoBehaviour
 
     [Header("Controles de efecto (solo funcionan con el menú abierto)")]
     [Tooltip("Tecla para activar/desactivar el efecto completo")]
-    public KeyCode toggleEffectKey = KeyCode.E;
+    public KeyCode toggleEffectKey = KeyCode.Alpha2;
 
     [Tooltip("Tecla para aumentar el tamaño de píxel")]
-    public KeyCode pixelSizeUpKey = KeyCode.Alpha2;
+    public KeyCode pixelSizeUpKey = KeyCode.Alpha3;
 
     [Tooltip("Tecla para disminuir el tamaño de píxel")]
-    public KeyCode pixelSizeDownKey = KeyCode.Alpha1;
+    public KeyCode pixelSizeDownKey = KeyCode.Alpha4;
 
     [Tooltip("Tecla para aumentar la profundidad de color")]
-    public KeyCode colorDepthUpKey = KeyCode.Alpha4;
+    public KeyCode colorDepthUpKey = KeyCode.Alpha5;
 
     [Tooltip("Tecla para disminuir la profundidad de color")]
-    public KeyCode colorDepthDownKey = KeyCode.Alpha3;
+    public KeyCode colorDepthDownKey = KeyCode.Alpha6;
 
     [Tooltip("Tecla para aumentar la intensidad del jitter")]
-    public KeyCode jitterIntensityUpKey = KeyCode.Alpha6;
+    public KeyCode jitterIntensityUpKey = KeyCode.Alpha7;
 
     [Tooltip("Tecla para disminuir la intensidad del jitter")]
-    public KeyCode jitterIntensityDownKey = KeyCode.Alpha5;
+    public KeyCode jitterIntensityDownKey = KeyCode.Alpha8;
 
     [Tooltip("Tecla para aumentar la velocidad del jitter")]
-    public KeyCode jitterSpeedUpKey = KeyCode.Alpha8;
+    public KeyCode jitterSpeedUpKey = KeyCode.Alpha9;
 
     [Tooltip("Tecla para disminuir la velocidad del jitter")]
-    public KeyCode jitterSpeedDownKey = KeyCode.Alpha7;
+    public KeyCode jitterSpeedDownKey = KeyCode.Alpha0;
 
     [Tooltip("Tecla para aumentar la intensidad del dithering")]
-    public KeyCode ditherIntensityUpKey = KeyCode.Alpha0;
+    public KeyCode ditherIntensityUpKey = KeyCode.U;
 
     [Tooltip("Tecla para disminuir la intensidad del dithering")]
-    public KeyCode ditherIntensityDownKey = KeyCode.Alpha9;
+    public KeyCode ditherIntensityDownKey = KeyCode.Y;
 
     [Header("Presets (solo funcionan con el menú abierto)")]
     [Tooltip("Tecla para aplicar el preset PS1 auténtico")]
-    public KeyCode presetAuthenticKey = KeyCode.F2;
+    public KeyCode presetAuthenticKey = KeyCode.Alpha1;
 
     [Tooltip("Tecla para aplicar el preset retro sutil")]
-    public KeyCode presetSubtleKey = KeyCode.F3;
+    public KeyCode presetSubtleKey = KeyCode.End;
 
     [Header("Incrementos por pulsación")]
     [Tooltip("Incremento del tamaño de píxel por pulsación")]
