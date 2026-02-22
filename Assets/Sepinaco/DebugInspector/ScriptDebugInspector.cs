@@ -139,9 +139,7 @@ public class ScriptDebugInspector : MonoBehaviour
     private float _boxH = 720f;
     private float _renderedH;
 
-    private const float LineH = 22f;
-    private const int HeaderLinesScripts = 7;
-    private const int HeaderLinesFields = 9;
+    private readonly List<Rect> _itemRects = new List<Rect>();
 
     // ───────────────────────── Supported types ─────────────────────────
 
@@ -275,21 +273,19 @@ public class ScriptDebugInspector : MonoBehaviour
 
     private void ApplyAutoScroll()
     {
-        int headerLines, itemCount;
+        int itemCount;
         switch (_screen)
         {
             case MenuScreen.Scripts:
-                headerLines = HeaderLinesScripts;
                 itemCount = _scripts != null ? _scripts.Length : 0;
                 break;
             case MenuScreen.Fields:
-                headerLines = HeaderLinesFields;
                 itemCount = _entries.Count;
                 break;
             default: return;
         }
         if (itemCount > 0)
-            AutoScroll(_cursor, headerLines, itemCount);
+            AutoScroll(_cursor, itemCount);
     }
 
     private void InputScripts()
@@ -916,8 +912,14 @@ public class ScriptDebugInspector : MonoBehaviour
                 string prefix = i == _cursor ? "►  " : "    ";
                 GUIStyle style = i == _cursor ? _sSel : _sLabel;
                 GUILayout.Label($"{prefix}<b>{name}</b>", style);
-                if (i == count - 1 && Event.current.type == EventType.Repaint)
-                    _lastItemContentBottom = GUILayoutUtility.GetLastRect().yMax;
+                if (Event.current.type == EventType.Repaint)
+                {
+                    Rect r = GUILayoutUtility.GetLastRect();
+                    if (i == 0) _itemRects.Clear();
+                    _itemRects.Add(r);
+                    if (i == count - 1)
+                        _lastItemContentBottom = r.yMax;
+                }
             }
         }
 
@@ -967,8 +969,14 @@ public class ScriptDebugInspector : MonoBehaviour
                 string tag = (!fe.isHeader && fe.readOnly) ? " <color=#666666>[ro]</color>" : "";
                 string headerMark = fe.isHeader ? "▸ " : "";
                 GUILayout.Label($"{prefix}{pad}{headerMark}<b>{fe.label}</b>  {val}{tag}", style);
-                if (i == count - 1 && Event.current.type == EventType.Repaint)
-                    _lastItemContentBottom = GUILayoutUtility.GetLastRect().yMax;
+                if (Event.current.type == EventType.Repaint)
+                {
+                    Rect r = GUILayoutUtility.GetLastRect();
+                    if (i == 0) _itemRects.Clear();
+                    _itemRects.Add(r);
+                    if (i == count - 1)
+                        _lastItemContentBottom = r.yMax;
+                }
             }
         }
 
@@ -1034,17 +1042,19 @@ public class ScriptDebugInspector : MonoBehaviour
             _sLabel);
     }
 
-    private void AutoScroll(int cursor, int headerLines, int itemCount)
+    private void AutoScroll(int cursor, int itemCount)
     {
         int prev = _prevCursor;
         _prevCursor = cursor;
         if (cursor == prev || itemCount == 0) return;
+        if (cursor < 0 || cursor >= _itemRects.Count) return;
 
         float viewH = _renderedH > 0f ? _renderedH - 24f : _boxH - 24f;
-        float cursorY = (headerLines + cursor) * LineH;
+        Rect cRect = _itemRects[cursor];
+        float itemH = cRect.height;
 
-        bool goingToLast = cursor == itemCount - 1;
         bool goingToFirst = cursor == 0;
+        bool goingToLast = cursor == itemCount - 1;
         bool wrappedDown = prev >= 0 && prev == itemCount - 1 && goingToFirst;
         bool wrappedUp   = prev >= 0 && prev == 0 && goingToLast;
         bool isFirstMove = prev < 0;
@@ -1057,17 +1067,18 @@ public class ScriptDebugInspector : MonoBehaviour
         {
             float targetY = _lastItemContentBottom > 0f
                 ? _lastItemContentBottom
-                : cursorY + LineH;
-            _scroll.y = Mathf.Max(0f, targetY - viewH + LineH);
+                : cRect.yMax;
+            _scroll.y = Mathf.Max(0f, targetY - viewH + itemH);
         }
         else if (isFirstMove || cursor > prev)
         {
-            _scroll.y = Mathf.Max(0f, cursorY - viewH * 0.3f);
+            if (cRect.yMax > _scroll.y + viewH)
+                _scroll.y = Mathf.Max(0f, cRect.y - viewH * 0.3f);
         }
         else
         {
-            _scroll.y -= LineH;
-            if (_scroll.y < 0f) _scroll.y = 0f;
+            if (cRect.y < _scroll.y)
+                _scroll.y = Mathf.Max(0f, cRect.y - itemH);
         }
     }
 
