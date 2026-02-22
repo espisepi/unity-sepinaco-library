@@ -15,8 +15,9 @@ using UnityEngine;
 /// Pantalla 2 — campos editables: navega con ↑/↓, modifica con ←/→.
 ///
 /// Tipos editables: int, long, float, double, bool, string, enums,
-/// Vector2/3/4, Color y Quaternion (euler).
-/// Los demás tipos se muestran como solo lectura.
+/// Vector2/3/4, Color, Quaternion (euler), arrays, listas,
+/// clases/structs [Serializable] (expandidos recursivamente)
+/// y referencias a UnityEngine.Object (solo lectura).
 /// </summary>
 public class ScriptDebugInspector : MonoBehaviour
 {
@@ -81,6 +82,11 @@ public class ScriptDebugInspector : MonoBehaviour
     [Tooltip("Tecla para disminuir el tamaño de las letras")]
     public KeyCode zoomOutKey = KeyCode.KeypadMinus;
 
+    [Header("Callbacks")]
+    [Tooltip("Llamar a OnValidate() del script objetivo tras modificar un campo.\n" +
+             "Permite que scripts como ScriptPhysicsManager apliquen los cambios automáticamente.")]
+    public bool callOnValidateAfterChange = true;
+
     // ───────────────────────── State ─────────────────────────
 
     private bool _menuOpen;
@@ -93,6 +99,7 @@ public class ScriptDebugInspector : MonoBehaviour
     private MonoBehaviour _editTarget;
     private readonly List<FieldEntry> _entries = new List<FieldEntry>();
     private int _prevCursor = -1;
+    private MethodInfo _cachedOnValidate;
 
     private string _textBuf = "";
     private int _textIdx;
@@ -104,6 +111,7 @@ public class ScriptDebugInspector : MonoBehaviour
     private GUIStyle _sLabel;
     private GUIStyle _sSel;
     private GUIStyle _sReadOnly;
+    private GUIStyle _sHeader;
     private bool _stylesReady;
     private int _fontSize = 14;
     private const int FontMin = 8;
@@ -130,6 +138,9 @@ public class ScriptDebugInspector : MonoBehaviour
         typeof(Color), typeof(Quaternion)
     };
 
+    private const int MaxNestDepth = 5;
+    private const int MaxArrayDisplay = 50;
+
     // ═══════════════════════════════════════════════════════════
     //  FieldEntry
     // ═══════════════════════════════════════════════════════════
@@ -137,42 +148,31 @@ public class ScriptDebugInspector : MonoBehaviour
     private class FieldEntry
     {
         public string label;
-        public FieldInfo field;
-        public MonoBehaviour owner;
-        public int sub; // -1 = direct, 0..3 = component index
+        public int indent;
         public bool readOnly;
+        public bool isHeader;
+        public Type valueType;
 
-        public Type ValueType => sub >= 0 ? typeof(float) : field.FieldType;
+        public Func<object> getter;
+        public Action<object> setter;
 
         public object Get()
         {
-            object v = field.GetValue(owner);
-            if (sub < 0) return v;
-            if (v is Vector2 v2) return v2[sub];
-            if (v is Vector3 v3) return v3[sub];
-            if (v is Vector4 v4) return v4[sub];
-            if (v is Color c) return c[sub];
-            if (v is Quaternion q) return q.eulerAngles[sub];
-            return v;
+            try { return getter != null ? getter() : null; }
+            catch (Exception ex)
+            {
+                Debug.LogWarning($"[DebugInspector] Get '{label}': {ex.Message}");
+                return null;
+            }
         }
 
         public void Set(object value)
         {
-            if (readOnly) return;
-            if (sub < 0) { field.SetValue(owner, value); return; }
-
-            float f = Convert.ToSingle(value);
-            object parent = field.GetValue(owner);
-
-            if (parent is Vector2 a) { a[sub] = f; field.SetValue(owner, a); }
-            else if (parent is Vector3 b) { b[sub] = f; field.SetValue(owner, b); }
-            else if (parent is Vector4 c) { c[sub] = f; field.SetValue(owner, c); }
-            else if (parent is Color d) { d[sub] = Mathf.Clamp01(f); field.SetValue(owner, d); }
-            else if (parent is Quaternion e)
+            if (readOnly || setter == null) return;
+            try { setter(value); }
+            catch (Exception ex)
             {
-                Vector3 euler = e.eulerAngles;
-                euler[sub] = f;
-                field.SetValue(owner, Quaternion.Euler(euler));
+                Debug.LogWarning($"[DebugInspector] Set '{label}': {ex.Message}");
             }
         }
     }
@@ -238,6 +238,8 @@ public class ScriptDebugInspector : MonoBehaviour
             if (target != null)
             {
                 _editTarget = target;
+                _cachedOnValidate = target.GetType().GetMethod("OnValidate",
+                    BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic);
                 RebuildEntries(target);
                 _screen = MenuScreen.Fields;
                 _cursor = 0;
@@ -245,6 +247,19 @@ public class ScriptDebugInspector : MonoBehaviour
                 _prevCursor = -1;
             }
         }
+    }
+
+    private void ApplySet(FieldEntry fe, object value)
+    {
+        fe.Set(value);
+        NotifyFieldChanged();
+    }
+
+    private void NotifyFieldChanged()
+    {
+        if (!callOnValidateAfterChange || _editTarget == null || _cachedOnValidate == null) return;
+        try { _cachedOnValidate.Invoke(_editTarget, null); }
+        catch (Exception ex) { Debug.LogWarning($"[DebugInspector] OnValidate: {ex.Message}"); }
     }
 
     private void InputFields()
@@ -270,59 +285,75 @@ public class ScriptDebugInspector : MonoBehaviour
         if (fe.readOnly) return;
 
         bool fast = Input.GetKey(fastKey);
-        Type vt = fe.ValueType;
+        Type vt = fe.valueType;
+        object cur = fe.Get();
 
         if (vt == typeof(bool))
         {
             if (Input.GetKeyDown(confirmKey) || Input.GetKeyDown(valueUpKey) || Input.GetKeyDown(valueDownKey))
-                fe.Set(!(bool)fe.Get());
+            {
+                if (cur is bool b) ApplySet(fe, !b);
+            }
         }
         else if (vt == typeof(string))
         {
             if (Input.GetKeyDown(confirmKey))
             {
-                _textBuf = (string)fe.Get() ?? "";
+                _textBuf = cur as string ?? "";
                 _textIdx = _cursor;
                 _screen = MenuScreen.TextEdit;
             }
         }
         else if (vt == typeof(int))
         {
-            int s = fast ? intFastStep : intStep;
-            if (Input.GetKeyDown(valueUpKey))   fe.Set((int)fe.Get() + s);
-            if (Input.GetKeyDown(valueDownKey)) fe.Set((int)fe.Get() - s);
+            if (cur is int iv)
+            {
+                int s = fast ? intFastStep : intStep;
+                if (Input.GetKeyDown(valueUpKey))   ApplySet(fe, iv + s);
+                if (Input.GetKeyDown(valueDownKey)) ApplySet(fe, iv - s);
+            }
         }
         else if (vt == typeof(long))
         {
-            long s = fast ? intFastStep : intStep;
-            if (Input.GetKeyDown(valueUpKey))   fe.Set((long)fe.Get() + s);
-            if (Input.GetKeyDown(valueDownKey)) fe.Set((long)fe.Get() - s);
+            if (cur is long lv)
+            {
+                long s = fast ? intFastStep : intStep;
+                if (Input.GetKeyDown(valueUpKey))   ApplySet(fe, lv + s);
+                if (Input.GetKeyDown(valueDownKey)) ApplySet(fe, lv - s);
+            }
         }
         else if (vt == typeof(float))
         {
-            float s = fast ? floatFastStep : floatStep;
-            if (Input.GetKeyDown(valueUpKey))   fe.Set((float)fe.Get() + s);
-            if (Input.GetKeyDown(valueDownKey)) fe.Set((float)fe.Get() - s);
+            if (cur is float fv)
+            {
+                float s = fast ? floatFastStep : floatStep;
+                if (Input.GetKeyDown(valueUpKey))   ApplySet(fe, fv + s);
+                if (Input.GetKeyDown(valueDownKey)) ApplySet(fe, fv - s);
+            }
         }
         else if (vt == typeof(double))
         {
-            double s = fast ? floatFastStep : floatStep;
-            if (Input.GetKeyDown(valueUpKey))   fe.Set((double)fe.Get() + s);
-            if (Input.GetKeyDown(valueDownKey)) fe.Set((double)fe.Get() - s);
+            if (cur is double dv)
+            {
+                double s = fast ? floatFastStep : floatStep;
+                if (Input.GetKeyDown(valueUpKey))   ApplySet(fe, dv + s);
+                if (Input.GetKeyDown(valueDownKey)) ApplySet(fe, dv - s);
+            }
         }
         else if (vt.IsEnum)
         {
             Array vals = Enum.GetValues(vt);
-            int idx = Array.IndexOf(vals, fe.Get());
+            int idx = cur != null ? Array.IndexOf(vals, cur) : -1;
+            if (idx < 0) idx = 0;
             if (Input.GetKeyDown(valueUpKey) || Input.GetKeyDown(confirmKey))
-                fe.Set(vals.GetValue((idx + 1) % vals.Length));
+                ApplySet(fe, vals.GetValue((idx + 1) % vals.Length));
             if (Input.GetKeyDown(valueDownKey))
-                fe.Set(vals.GetValue((idx - 1 + vals.Length) % vals.Length));
+                ApplySet(fe, vals.GetValue((idx - 1 + vals.Length) % vals.Length));
         }
     }
 
     // ═══════════════════════════════════════════════════════════
-    //  Reflection
+    //  Reflection — entry building
     // ═══════════════════════════════════════════════════════════
 
     private void RebuildEntries(MonoBehaviour target)
@@ -352,47 +383,360 @@ public class ScriptDebugInspector : MonoBehaviour
                 bool hasSer = Attribute.IsDefined(fi, typeof(SerializeField));
                 if (!isPublic && !hasSer) continue;
 
-                Type ft = fi.FieldType;
+                FieldInfo captured = fi;
+                Func<object> getter = () => captured.GetValue(target);
+                Action<object> setter = v => captured.SetValue(target, v);
 
-                if (CompoundEditable.Contains(ft))
-                {
-                    AddCompound(fi, target, ft);
-                    continue;
-                }
-
-                bool editable = SimpleEditable.Contains(ft) || ft.IsEnum;
-                _entries.Add(new FieldEntry
-                {
-                    label = Nicify(fi.Name),
-                    field = fi,
-                    owner = target,
-                    sub = -1,
-                    readOnly = !editable
-                });
+                AddFieldRecursive(getter, setter, captured.FieldType, Nicify(captured.Name), 0, 0);
             }
         }
     }
 
-    private void AddCompound(FieldInfo fi, MonoBehaviour target, Type ft)
+    // ── Recursive field expansion ───────────────────────────
+
+    private void AddFieldRecursive(Func<object> getter, Action<object> setter,
+                                    Type ft, string label, int indent, int depth)
+    {
+        if (depth > MaxNestDepth)
+        {
+            _entries.Add(new FieldEntry
+            {
+                label = label, indent = indent, readOnly = true,
+                valueType = ft, getter = getter
+            });
+            return;
+        }
+
+        // 1. Compound vector/color types
+        if (CompoundEditable.Contains(ft))
+        {
+            AddCompoundEntries(getter, setter, ft, label, indent);
+            return;
+        }
+
+        // 2. Simple editable + enums
+        if (SimpleEditable.Contains(ft) || ft.IsEnum)
+        {
+            _entries.Add(new FieldEntry
+            {
+                label = label, indent = indent, readOnly = false,
+                valueType = ft, getter = getter, setter = setter
+            });
+            return;
+        }
+
+        // 3. Arrays
+        if (ft.IsArray)
+        {
+            AddArrayEntries(getter, setter, ft, label, indent, depth);
+            return;
+        }
+
+        // 4. Generic List<T>
+        if (typeof(IList).IsAssignableFrom(ft) && ft.IsGenericType)
+        {
+            AddListEntries(getter, setter, ft, label, indent, depth);
+            return;
+        }
+
+        // 5. UnityEngine.Object references (read-only)
+        if (typeof(UnityEngine.Object).IsAssignableFrom(ft))
+        {
+            _entries.Add(new FieldEntry
+            {
+                label = label, indent = indent, readOnly = true,
+                valueType = ft, getter = getter
+            });
+            return;
+        }
+
+        // 6. [Serializable] classes / structs — expand recursively
+        if (IsSerializableExpandable(ft))
+        {
+            AddSerializableEntries(getter, setter, ft, label, indent, depth);
+            return;
+        }
+
+        // 7. Fallback — read only
+        _entries.Add(new FieldEntry
+        {
+            label = label, indent = indent, readOnly = true,
+            valueType = ft, getter = getter
+        });
+    }
+
+    // ── Compound types (Vector2/3/4, Color, Quaternion) ─────
+
+    private void AddCompoundEntries(Func<object> parentGet, Action<object> parentSet,
+                                     Type ft, string label, int indent)
     {
         string[] labels;
+        bool isColor = ft == typeof(Color);
+        bool isQuat  = ft == typeof(Quaternion);
+
         if      (ft == typeof(Vector2))    labels = new[] { "x", "y" };
         else if (ft == typeof(Vector3))    labels = new[] { "x", "y", "z" };
         else if (ft == typeof(Vector4))    labels = new[] { "x", "y", "z", "w" };
-        else if (ft == typeof(Color))      labels = new[] { "r", "g", "b", "a" };
+        else if (isColor)                  labels = new[] { "r", "g", "b", "a" };
         else                               labels = new[] { "x°", "y°", "z°" };
 
         for (int i = 0; i < labels.Length; i++)
         {
+            int comp = i;
+
+            Func<object> cGet = () =>
+            {
+                object v = parentGet();
+                if (v is Vector2 v2) return v2[comp];
+                if (v is Vector3 v3) return v3[comp];
+                if (v is Vector4 v4) return v4[comp];
+                if (v is Color c)    return c[comp];
+                if (v is Quaternion q) return q.eulerAngles[comp];
+                return 0f;
+            };
+
+            Action<object> cSet = val =>
+            {
+                float f = Convert.ToSingle(val);
+                object parent = parentGet();
+
+                if (parent is Vector2 a) { a[comp] = f; parentSet(a); }
+                else if (parent is Vector3 b) { b[comp] = f; parentSet(b); }
+                else if (parent is Vector4 c) { c[comp] = f; parentSet(c); }
+                else if (parent is Color d) { d[comp] = Mathf.Clamp01(f); parentSet(d); }
+                else if (parent is Quaternion e)
+                {
+                    Vector3 euler = e.eulerAngles;
+                    euler[comp] = f;
+                    parentSet(Quaternion.Euler(euler));
+                }
+            };
+
             _entries.Add(new FieldEntry
             {
-                label = $"{Nicify(fi.Name)}.{labels[i]}",
-                field = fi,
-                owner = target,
-                sub = i,
-                readOnly = false
+                label = $"{label}.{labels[i]}",
+                indent = indent,
+                readOnly = false,
+                valueType = typeof(float),
+                getter = cGet,
+                setter = cSet
             });
         }
+    }
+
+    // ── Arrays ──────────────────────────────────────────────
+
+    private void AddArrayEntries(Func<object> arrGet, Action<object> arrSet,
+                                  Type ft, string label, int indent, int depth)
+    {
+        Type elemType = ft.GetElementType();
+
+        _entries.Add(new FieldEntry
+        {
+            label = label, indent = indent, readOnly = true,
+            isHeader = true, valueType = ft, getter = arrGet
+        });
+
+        object arrObj;
+        try { arrObj = arrGet(); } catch { return; }
+        if (!(arrObj is Array arr)) return;
+
+        int count = Mathf.Min(arr.Length, MaxArrayDisplay);
+        for (int i = 0; i < count; i++)
+        {
+            int idx = i;
+
+            Func<object> elemGet = () =>
+            {
+                object a = arrGet();
+                if (a is Array ar && idx < ar.Length) return ar.GetValue(idx);
+                return null;
+            };
+
+            Action<object> elemSet = v =>
+            {
+                object a = arrGet();
+                if (a is Array ar && idx < ar.Length) ar.SetValue(v, idx);
+            };
+
+            AddElementEntry(elemGet, elemSet, elemType, $"{label}[{idx}]", indent + 1, depth + 1);
+        }
+
+        if (arr.Length > MaxArrayDisplay)
+        {
+            _entries.Add(new FieldEntry
+            {
+                label = $"… ({arr.Length - MaxArrayDisplay} más)",
+                indent = indent + 1, readOnly = true, isHeader = true,
+                valueType = typeof(void), getter = () => null
+            });
+        }
+    }
+
+    // ── Generic List<T> ─────────────────────────────────────
+
+    private void AddListEntries(Func<object> listGet, Action<object> listSet,
+                                 Type ft, string label, int indent, int depth)
+    {
+        Type elemType = ft.IsGenericType ? ft.GetGenericArguments()[0] : typeof(object);
+
+        _entries.Add(new FieldEntry
+        {
+            label = label, indent = indent, readOnly = true,
+            isHeader = true, valueType = ft, getter = listGet
+        });
+
+        object listObj;
+        try { listObj = listGet(); } catch { return; }
+        if (!(listObj is IList list)) return;
+
+        int count = Mathf.Min(list.Count, MaxArrayDisplay);
+        for (int i = 0; i < count; i++)
+        {
+            int idx = i;
+
+            Func<object> elemGet = () =>
+            {
+                object l = listGet();
+                if (l is IList ls && idx < ls.Count) return ls[idx];
+                return null;
+            };
+
+            Action<object> elemSet = v =>
+            {
+                object l = listGet();
+                if (l is IList ls && idx < ls.Count) ls[idx] = v;
+            };
+
+            AddElementEntry(elemGet, elemSet, elemType, $"{label}[{idx}]", indent + 1, depth + 1);
+        }
+
+        if (list.Count > MaxArrayDisplay)
+        {
+            _entries.Add(new FieldEntry
+            {
+                label = $"… ({list.Count - MaxArrayDisplay} más)",
+                indent = indent + 1, readOnly = true, isHeader = true,
+                valueType = typeof(void), getter = () => null
+            });
+        }
+    }
+
+    // ── Element dispatch (array / list element) ─────────────
+
+    private void AddElementEntry(Func<object> elemGet, Action<object> elemSet,
+                                  Type elemType, string label, int indent, int depth)
+    {
+        if (CompoundEditable.Contains(elemType) ||
+            SimpleEditable.Contains(elemType) ||
+            elemType.IsEnum)
+        {
+            AddFieldRecursive(elemGet, elemSet, elemType, label, indent, depth);
+            return;
+        }
+
+        if (typeof(UnityEngine.Object).IsAssignableFrom(elemType))
+        {
+            _entries.Add(new FieldEntry
+            {
+                label = label, indent = indent, readOnly = true,
+                valueType = elemType, getter = elemGet
+            });
+            return;
+        }
+
+        if (IsSerializableExpandable(elemType))
+        {
+            _entries.Add(new FieldEntry
+            {
+                label = label, indent = indent, readOnly = true,
+                isHeader = true, valueType = elemType, getter = elemGet
+            });
+            ExpandSerializableFields(elemGet, elemSet, elemType, indent + 1, depth);
+            return;
+        }
+
+        AddFieldRecursive(elemGet, elemSet, elemType, label, indent, depth);
+    }
+
+    // ── [Serializable] class / struct ───────────────────────
+
+    private void AddSerializableEntries(Func<object> getter, Action<object> setter,
+                                         Type ft, string label, int indent, int depth)
+    {
+        _entries.Add(new FieldEntry
+        {
+            label = label, indent = indent, readOnly = true,
+            isHeader = true, valueType = ft, getter = getter
+        });
+
+        object current;
+        try { current = getter(); } catch { return; }
+        if (current == null && !ft.IsValueType) return;
+
+        ExpandSerializableFields(getter, setter, ft, indent + 1, depth + 1);
+    }
+
+    private void ExpandSerializableFields(Func<object> parentGet, Action<object> parentSet,
+                                           Type ft, int indent, int depth)
+    {
+        var hierarchy = new List<Type>();
+        Type stopType = ft.IsValueType ? typeof(ValueType) : typeof(object);
+        for (Type t = ft; t != null && t != stopType; t = t.BaseType)
+            hierarchy.Add(t);
+        hierarchy.Reverse();
+
+        bool parentIsValueType = ft.IsValueType;
+
+        foreach (Type t in hierarchy)
+        {
+            FieldInfo[] fields = t.GetFields(
+                BindingFlags.Instance | BindingFlags.Public |
+                BindingFlags.NonPublic | BindingFlags.DeclaredOnly);
+
+            foreach (FieldInfo fi in fields)
+            {
+                if (fi.IsStatic) continue;
+                if (Attribute.IsDefined(fi, typeof(HideInInspector))) continue;
+                if (Attribute.IsDefined(fi, typeof(NonSerializedAttribute))) continue;
+
+                bool isPublic = fi.IsPublic;
+                bool hasSer = Attribute.IsDefined(fi, typeof(SerializeField));
+                if (!isPublic && !hasSer) continue;
+
+                FieldInfo captured = fi;
+
+                Func<object> fieldGet = () =>
+                {
+                    object parent = parentGet();
+                    return parent != null ? captured.GetValue(parent) : null;
+                };
+
+                Action<object> fieldSet = v =>
+                {
+                    object parent = parentGet();
+                    if (parent == null) return;
+                    captured.SetValue(parent, v);
+                    if (parentIsValueType && parentSet != null)
+                        parentSet(parent);
+                };
+
+                AddFieldRecursive(fieldGet, fieldSet, captured.FieldType,
+                                  Nicify(captured.Name), indent, depth);
+            }
+        }
+    }
+
+    private static bool IsSerializableExpandable(Type t)
+    {
+        if (t.IsPrimitive || t == typeof(string) || t == typeof(decimal)) return false;
+        if (t.IsEnum) return false;
+        if (SimpleEditable.Contains(t) || CompoundEditable.Contains(t)) return false;
+        if (typeof(UnityEngine.Object).IsAssignableFrom(t)) return false;
+        if (t.IsArray) return false;
+        if (typeof(IList).IsAssignableFrom(t)) return false;
+
+        return Attribute.IsDefined(t, typeof(SerializableAttribute));
     }
 
     // ═══════════════════════════════════════════════════════════
@@ -429,6 +773,10 @@ public class ScriptDebugInspector : MonoBehaviour
         _sReadOnly = new GUIStyle(_sLabel);
         _sReadOnly.normal.textColor = new Color(0.55f, 0.55f, 0.55f);
         _sReadOnly.richText = true;
+
+        _sHeader = new GUIStyle(_sLabel);
+        _sHeader.normal.textColor = new Color(0.6f, 0.85f, 1f);
+        _sHeader.richText = true;
 
         _stylesReady = true;
     }
@@ -535,16 +883,21 @@ public class ScriptDebugInspector : MonoBehaviour
             for (int i = 0; i < count; i++)
             {
                 FieldEntry fe = _entries[i];
-                string prefix = i == _cursor ? "►  " : "    ";
+                string pad = fe.indent > 0 ? new string(' ', fe.indent * 3) : "";
+                string prefix = i == _cursor ? "► " : "   ";
                 string val = FormatValue(fe);
 
                 GUIStyle style;
-                if (fe.readOnly) style = _sReadOnly;
-                else if (i == _cursor) style = _sSel;
-                else style = _sLabel;
+                if (fe.isHeader)
+                    style = i == _cursor ? _sSel : _sHeader;
+                else if (fe.readOnly)
+                    style = i == _cursor ? _sSel : _sReadOnly;
+                else
+                    style = i == _cursor ? _sSel : _sLabel;
 
-                string readOnlyTag = fe.readOnly ? " <color=#666666>[ro]</color>" : "";
-                GUILayout.Label($"{prefix}<b>{fe.label}</b>  {val}{readOnlyTag}", style);
+                string tag = (!fe.isHeader && fe.readOnly) ? " <color=#666666>[ro]</color>" : "";
+                string headerMark = fe.isHeader ? "▸ " : "";
+                GUILayout.Label($"{prefix}{pad}{headerMark}<b>{fe.label}</b>  {val}{tag}", style);
             }
         }
 
@@ -574,7 +927,7 @@ public class ScriptDebugInspector : MonoBehaviour
         {
             if (e.keyCode == KeyCode.Return || e.keyCode == KeyCode.KeypadEnter)
             {
-                _entries[_textIdx].Set(_textBuf);
+                ApplySet(_entries[_textIdx], _textBuf);
                 _screen = MenuScreen.Fields;
                 _cursor = _textIdx;
                 e.Use();
@@ -631,13 +984,16 @@ public class ScriptDebugInspector : MonoBehaviour
 
     private static string FormatValue(FieldEntry fe)
     {
+        if (fe.isHeader)
+            return FormatHeaderValue(fe);
+
         object val;
         try { val = fe.Get(); }
         catch { return "<color=#FF6666><error></color>"; }
 
         if (val == null) return "<color=#888888><null></color>";
 
-        Type t = fe.ValueType;
+        Type t = fe.valueType;
 
         if (t == typeof(bool))
         {
@@ -659,19 +1015,42 @@ public class ScriptDebugInspector : MonoBehaviour
 
         if (val is UnityEngine.Object uObj)
             return uObj != null
-                ? $"<color=#888888>{uObj.name}</color>"
+                ? $"<color=#88CCFF>{uObj.name}</color>"
                 : "<color=#888888><None></color>";
-        if (t.IsArray)
-        {
-            Array arr = val as Array;
-            return arr != null
-                ? $"<color=#888888>({t.GetElementType()?.Name}[{arr.Length}])</color>"
-                : "<color=#888888><null></color>";
-        }
-        if (val is IList list)
-            return $"<color=#888888>(List [{list.Count}])</color>";
 
         return $"<color=#888888>{val}</color>";
+    }
+
+    private static string FormatHeaderValue(FieldEntry fe)
+    {
+        object val;
+        try { val = fe.Get(); }
+        catch { return "<color=#FF6666><error></color>"; }
+
+        Type t = fe.valueType;
+
+        if (val == null)
+            return $"<color=#888888>({t?.Name ?? "?"}) <null></color>";
+
+        if (t != null && t.IsArray)
+        {
+            Array arr = val as Array;
+            string elemName = t.GetElementType()?.Name ?? "?";
+            int len = arr?.Length ?? 0;
+            return $"<color=#999999>({elemName}[{len}])</color>";
+        }
+
+        if (val is IList list)
+        {
+            Type elemType = t != null && t.IsGenericType ? t.GetGenericArguments()[0] : null;
+            string elemName = elemType?.Name ?? "?";
+            return $"<color=#999999>(List‹{elemName}› [{list.Count}])</color>";
+        }
+
+        if (t == typeof(void))
+            return "";
+
+        return $"<color=#999999>({t?.Name ?? "?"})</color>";
     }
 
     private static string Nicify(string name)
