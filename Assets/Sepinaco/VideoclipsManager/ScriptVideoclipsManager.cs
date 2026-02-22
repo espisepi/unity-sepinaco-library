@@ -50,6 +50,19 @@ public class ScriptVideoclipsManager : MonoBehaviour
     [Tooltip("Tecla para disminuir el tamaño de las letras de la UI")]
     public KeyCode zoomOutKey = KeyCode.O;
 
+    [Header("Tamaño de la UI (solo funcionan con el menú abierto)")]
+    [Tooltip("Tecla para aumentar el ancho de la UI")]
+    public KeyCode uiWidthIncreaseKey = KeyCode.RightArrow;
+
+    [Tooltip("Tecla para disminuir el ancho de la UI")]
+    public KeyCode uiWidthDecreaseKey = KeyCode.LeftArrow;
+
+    [Tooltip("Tecla para aumentar el alto de la UI")]
+    public KeyCode uiHeightIncreaseKey = KeyCode.PageUp;
+
+    [Tooltip("Tecla para disminuir el alto de la UI")]
+    public KeyCode uiHeightDecreaseKey = KeyCode.PageDown;
+
     [Header("Estado inicial")]
     public bool replaceTexturesOnStart = true;
     public bool startMuted = false;
@@ -79,6 +92,14 @@ public class ScriptVideoclipsManager : MonoBehaviour
     private const int GuiFontSizeMin = 8;
     private const int GuiFontSizeMax = 40;
     private const int GuiFontSizeStep = 2;
+
+    private float guiBoxWidth = 340f;
+    private float guiBoxHeight = 400f;
+    private const float GuiBoxSizeStep = 20f;
+    private const float GuiBoxWidthMin = 200f;
+    private const float GuiBoxWidthMax = 1200f;
+    private const float GuiBoxHeightMin = 100f;
+    private const float GuiBoxHeightMax = 1200f;
 
     private string cachedLabelNext;
     private string cachedLabelPrevious;
@@ -165,6 +186,18 @@ public class ScriptVideoclipsManager : MonoBehaviour
             guiFontSize = Mathf.Max(guiFontSize - GuiFontSizeStep, GuiFontSizeMin);
             stylesInitialized = false;
         }
+
+        if (Input.GetKeyDown(uiWidthIncreaseKey))
+            guiBoxWidth = Mathf.Min(guiBoxWidth + GuiBoxSizeStep, GuiBoxWidthMax);
+
+        if (Input.GetKeyDown(uiWidthDecreaseKey))
+            guiBoxWidth = Mathf.Max(guiBoxWidth - GuiBoxSizeStep, GuiBoxWidthMin);
+
+        if (Input.GetKeyDown(uiHeightIncreaseKey))
+            guiBoxHeight = Mathf.Min(guiBoxHeight + GuiBoxSizeStep, GuiBoxHeightMax);
+
+        if (Input.GetKeyDown(uiHeightDecreaseKey))
+            guiBoxHeight = Mathf.Max(guiBoxHeight - GuiBoxSizeStep, GuiBoxHeightMin);
     }
 
     void StoreOriginalMaterials()
@@ -393,9 +426,9 @@ public class ScriptVideoclipsManager : MonoBehaviour
         if (guiStringsDirty)
             RebuildDynamicGUIStrings();
 
-        float boxWidth = 340f;
-        float contentHeight = 260f;
-        float maxBoxHeight = Mathf.Min(contentHeight, Screen.height * 0.8f);
+        float boxWidth = guiBoxWidth;
+        float contentHeight = 300f;
+        float maxBoxHeight = Mathf.Min(contentHeight, guiBoxHeight, Screen.height * 0.95f);
         float x = 10f;
         float y = 10f;
         Rect boxRect = new Rect(x, y, boxWidth, maxBoxHeight);
@@ -415,6 +448,8 @@ public class ScriptVideoclipsManager : MonoBehaviour
         GUILayout.Label(cachedLabelPrevious, labelStyle);
         GUILayout.Label(cachedLabelScroll, labelStyle);
         GUILayout.Label($"<b>[{zoomInKey}]</b> / <b>[{zoomOutKey}]</b>  Zoom UI ({guiFontSize}px)", labelStyle);
+        GUILayout.Label($"<b>[{uiWidthDecreaseKey}]</b> / <b>[{uiWidthIncreaseKey}]</b>  Ancho UI ({guiBoxWidth}px)", labelStyle);
+        GUILayout.Label($"<b>[{uiHeightDecreaseKey}]</b> / <b>[{uiHeightIncreaseKey}]</b>  Alto UI ({guiBoxHeight}px)", labelStyle);
         GUILayout.Space(8);
         GUILayout.Label(cachedLabelVideo, labelStyle);
         GUILayout.Space(4);

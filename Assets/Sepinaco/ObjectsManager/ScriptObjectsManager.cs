@@ -84,6 +84,19 @@ public class ScriptObjectsManager : MonoBehaviour
     [Tooltip("Tecla para disminuir el tamaño de las letras de la UI")]
     public KeyCode zoomOutKey = KeyCode.O;
 
+    [Header("Tamaño de la UI (solo funcionan con el menú abierto)")]
+    [Tooltip("Tecla para aumentar el ancho de la UI")]
+    public KeyCode uiWidthIncreaseKey = KeyCode.RightArrow;
+
+    [Tooltip("Tecla para disminuir el ancho de la UI")]
+    public KeyCode uiWidthDecreaseKey = KeyCode.LeftArrow;
+
+    [Tooltip("Tecla para aumentar el alto de la UI")]
+    public KeyCode uiHeightIncreaseKey = KeyCode.PageUp;
+
+    [Tooltip("Tecla para disminuir el alto de la UI")]
+    public KeyCode uiHeightDecreaseKey = KeyCode.PageDown;
+
     private bool _menuActive;
     private int _selectedIndex;
     private Vector2 _scrollPosition;
@@ -97,6 +110,14 @@ public class ScriptObjectsManager : MonoBehaviour
     private const int GuiFontSizeMin = 8;
     private const int GuiFontSizeMax = 40;
     private const int GuiFontSizeStep = 2;
+
+    private float _guiBoxWidth = 380f;
+    private float _guiBoxHeight = 400f;
+    private const float GuiBoxSizeStep = 20f;
+    private const float GuiBoxWidthMin = 200f;
+    private const float GuiBoxWidthMax = 1200f;
+    private const float GuiBoxHeightMin = 100f;
+    private const float GuiBoxHeightMax = 1200f;
 
     public event Action<GameObject, bool> OnTargetStateChanged;
 
@@ -163,6 +184,18 @@ public class ScriptObjectsManager : MonoBehaviour
             _guiFontSize = Mathf.Max(_guiFontSize - GuiFontSizeStep, GuiFontSizeMin);
             _stylesInitialized = false;
         }
+
+        if (Input.GetKeyDown(uiWidthIncreaseKey))
+            _guiBoxWidth = Mathf.Min(_guiBoxWidth + GuiBoxSizeStep, GuiBoxWidthMax);
+
+        if (Input.GetKeyDown(uiWidthDecreaseKey))
+            _guiBoxWidth = Mathf.Max(_guiBoxWidth - GuiBoxSizeStep, GuiBoxWidthMin);
+
+        if (Input.GetKeyDown(uiHeightIncreaseKey))
+            _guiBoxHeight = Mathf.Min(_guiBoxHeight + GuiBoxSizeStep, GuiBoxHeightMax);
+
+        if (Input.GetKeyDown(uiHeightDecreaseKey))
+            _guiBoxHeight = Mathf.Max(_guiBoxHeight - GuiBoxSizeStep, GuiBoxHeightMin);
     }
 
     // ───────────────────────── API pública (runtime) ─────────────────────────
@@ -242,10 +275,10 @@ public class ScriptObjectsManager : MonoBehaviour
 
         int targetCount = _targets != null ? _targets.Length : 0;
         float lineHeight = 22f;
-        float headerHeight = 190f;
-        float boxWidth = 380f;
+        float headerHeight = 220f;
+        float boxWidth = _guiBoxWidth;
         float contentHeight = headerHeight + targetCount * lineHeight;
-        float maxBoxHeight = Mathf.Min(contentHeight, Screen.height * 0.8f);
+        float maxBoxHeight = Mathf.Min(contentHeight, _guiBoxHeight, Screen.height * 0.95f);
         float x = 10f;
         float y = Screen.height - maxBoxHeight - 10f;
         Rect boxRect = new Rect(x, y, boxWidth, maxBoxHeight);
@@ -265,6 +298,8 @@ public class ScriptObjectsManager : MonoBehaviour
         GUILayout.Label($"<b>[{nextTargetKey}]</b> / <b>[{prevTargetKey}]</b>  Navegar targets", _labelStyle);
         GUILayout.Label($"<b>[{scrollUpKey}]</b> / <b>[{scrollDownKey}]</b>  Scroll menú", _labelStyle);
         GUILayout.Label($"<b>[{zoomInKey}]</b> / <b>[{zoomOutKey}]</b>  Zoom UI ({_guiFontSize}px)", _labelStyle);
+        GUILayout.Label($"<b>[{uiWidthDecreaseKey}]</b> / <b>[{uiWidthIncreaseKey}]</b>  Ancho UI ({_guiBoxWidth}px)", _labelStyle);
+        GUILayout.Label($"<b>[{uiHeightDecreaseKey}]</b> / <b>[{uiHeightIncreaseKey}]</b>  Alto UI ({_guiBoxHeight}px)", _labelStyle);
         GUILayout.Space(8);
 
         for (int i = 0; i < targetCount; i++)
