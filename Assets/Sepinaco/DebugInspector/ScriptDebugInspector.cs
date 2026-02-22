@@ -131,12 +131,12 @@ public class ScriptDebugInspector : MonoBehaviour
     private GUIStyle _sReadOnly;
     private GUIStyle _sHeader;
     private bool _stylesReady;
-    private int _fontSize = 14;
+    private int _fontSize = 22;
     private const int FontMin = 8;
-    private const int FontMax = 40;
+    private const int FontMax = 48;
     private const int FontStep = 2;
-    private float _boxW = 540f;
-    private float _boxH = 560f;
+    private float _boxW = 780f;
+    private float _boxH = 720f;
     private float _renderedH;
 
     private const float LineH = 22f;
