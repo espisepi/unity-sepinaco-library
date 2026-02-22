@@ -1,3 +1,5 @@
 quiero crear un script que lo asocie a un gameobject y le incluya al script creado un array de scripts. Los scripts del array que le incluyo son scripts que aparecen en la escena. Quiero que el script creado me muestre un menu debug visual en el que puedo modificar los valores de los atributos que se muestran en el editor de unity de los scripts añadidos respectivamente. Dentro del menu visual del script creado, aparecerá primero una pantalla con el listado de scripts del array en la que puedo navegar uno por uno entre ellos y seleccionarlo. Y una vez seleccionado el script aparecerá otra pantalla con los valores modificables de los atributos del script y puedo navegar entre ellos y modificarlo. Todo lo puedo hacer usando el teclado. Quiero que para abrir y cerrar el menu debug del script que me has creado tenga que pulsar la tecla F1.
 
 ======
+
+Crear un builder escenario para construir escenarios en runtime y guardarlos y cargarlos y usarlos. Le añado al script los gameobject que puedo crear, eliminar y modificar dentro del juego
