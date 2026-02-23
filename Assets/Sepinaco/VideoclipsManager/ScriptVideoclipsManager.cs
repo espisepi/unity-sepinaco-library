@@ -92,6 +92,8 @@ public class ScriptVideoclipsManager : MonoBehaviour
     private int _lastAppliedVideoIndex = -1;
     private bool _lastAppliedUseVideoTextures;
     private bool _lastAppliedMuteAudio;
+    private bool isPlayingFromUrl;
+    private string urlVideoDisplayName = "";
     private bool menuActive;
     private Vector2 scrollPosition;
 
@@ -320,10 +322,13 @@ public class ScriptVideoclipsManager : MonoBehaviour
         cachedLabelMute = $"<b>[{toggleMuteKey}]</b>  Audio: {(isMuted ? "<color=#FF6666>Mute</color>" : "<color=#66FF66>On</color>")}";
 
         string videoName = "---";
-        if (videoClips != null && currentVideoIndex < videoClips.Length && videoClips[currentVideoIndex] != null)
+        if (isPlayingFromUrl)
+            videoName = $"<color=#4EC5F1>[Web] {urlVideoDisplayName}</color>";
+        else if (videoClips != null && currentVideoIndex < videoClips.Length && videoClips[currentVideoIndex] != null)
             videoName = videoClips[currentVideoIndex].name;
 
-        cachedLabelVideo = $"<b>Vídeo:</b> {videoName}  ({currentVideoIndex + 1}/{videoClips.Length})";
+        string clipInfo = videoClips != null ? $"({currentVideoIndex + 1}/{videoClips.Length})" : "";
+        cachedLabelVideo = $"<b>Vídeo:</b> {videoName}  {clipInfo}";
         guiStringsDirty = false;
     }
 
@@ -365,10 +370,12 @@ public class ScriptVideoclipsManager : MonoBehaviour
     {
         if (index < 0 || index >= videoClips.Length || videoClips[index] == null) return;
 
+        videoPlayer.source = VideoSource.VideoClip;
         videoPlayer.clip = videoClips[index];
         videoPlayer.Play();
         currentVideoIndex = index;
         _lastAppliedVideoIndex = index;
+        isPlayingFromUrl = false;
         guiStringsDirty = true;
 
         Debug.Log($"[ScriptVideoclipsManager] Reproduciendo vídeo {index}: {videoClips[index].name}");
@@ -421,6 +428,33 @@ public class ScriptVideoclipsManager : MonoBehaviour
     {
         currentVideoIndex = (currentVideoIndex - 1 + videoClips.Length) % videoClips.Length;
         PlayVideo(currentVideoIndex);
+    }
+
+    public void PlayVideoFromUrl(string filePath, string displayName)
+    {
+        if (videoPlayer == null) return;
+
+        videoPlayer.Stop();
+        videoPlayer.source = VideoSource.Url;
+        videoPlayer.url = filePath;
+        videoPlayer.Play();
+
+        isPlayingFromUrl = true;
+        urlVideoDisplayName = displayName;
+        guiStringsDirty = true;
+
+        Debug.Log($"[ScriptVideoclipsManager] Reproduciendo vídeo desde archivo: {displayName}");
+    }
+
+    public string CurrentVideoDisplayName
+    {
+        get
+        {
+            if (isPlayingFromUrl) return urlVideoDisplayName;
+            if (videoClips != null && currentVideoIndex < videoClips.Length && videoClips[currentVideoIndex] != null)
+                return videoClips[currentVideoIndex].name;
+            return "---";
+        }
     }
 
     void ReplaceSceneTextures()
