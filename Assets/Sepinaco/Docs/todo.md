@@ -33,3 +33,5 @@ Añadir un script dentro de la carpeta sepinaco, que se asocie a un gameobject p
 Escribir el prompt para hacerlo por servidor web (mirar chatgpt)
 
 Añadir un script dentro de la carpeta sepinaco, que se asocie a un gameobject, que levante un servidor web y desde cualquier dispositivo que se conecte a una pagina web que levanto en mi local desde ese servidor web, que el servidor exponga junto con la información de la ip y puertos para conectarse a esa página web y pueda modificar en runtime el video que se está reproduciendo desde la pagina web y subir el video desde esa pagina web y se reemplace por el video del script ScriptVideoclipsManager para poder modificar el video que estoy reproduciendo en la escena desde cualquier dispositivo que tenga conexión a internet y se pueda conectar a la página web en local para subir el vídeo y reemplazarlo por el video de la escena.
+
+añade la posibilidad de poder modificar el puerto como atributo modificable en runtime desde el editor y fuera del editor en la build final
