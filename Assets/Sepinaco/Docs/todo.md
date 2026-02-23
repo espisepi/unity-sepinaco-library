@@ -19,3 +19,7 @@ y decirle que me haga una replica del mismo efecto con un script que añada a un
 
 
 Añadir un script que se asocie a un gameobject para mostrar una vista ui en mobile para simular pulsando botones en mobile a las teclas de PC asociadas a las configuraciones y desplazamientos del menu debug o de cualquier script que se le añada al script creado para poder simular pulsar las teclas en la build de mobile
+
+============
+
+Añadir un script que se asocie a un gameobject dentro de la carpeta sepinaco para que desactive todos los controles de la camara en la escena y me añada un control en modo dios para poder navegar dentro de la escena como si lo hiciese en el editor de unity y así ir volando por el escenario en todas las direcciones. Quiero un atributo modificable desde el editor de unity para activar o desactivar el control de la camara en modo dios y cuando esté desactivado quiero que tengamos el control que teníamos previamente a activarlo. Estos atributoas también lo podremos modificar cuando añadamos el script creado al script ScriptDebugInspector para modificar esos atributos desde la ventana debug del script ScriptDebugInspector
