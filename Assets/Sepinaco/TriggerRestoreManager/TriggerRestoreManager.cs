@@ -137,15 +137,13 @@ public class TriggerRestoreManager : MonoBehaviour
         SyncTriggerPosition();
     }
 
-    // ──────────────── Editor ────────────────
+    // ──────────────── Aplicar cambios al modificar Inspector o DebugInspector ────────────────
 
-#if UNITY_EDITOR
     private void OnValidate()
     {
         if (_trigger != null)
             SyncTriggerPosition();
     }
-#endif
 
     private void OnDrawGizmos()
     {

@@ -233,11 +233,11 @@ public class ScriptPhysicsManager : MonoBehaviour
         ApplyAll();
     }
 
-    // ────────────────────── Editor: aplicar cambios al tocar Inspector ──────────────────────
+    // ────────────────────── Aplicar cambios al modificar Inspector o DebugInspector ──────────────────────
 
-#if UNITY_EDITOR
     private void OnValidate()
     {
+#if UNITY_EDITOR
         if (!Application.isPlaying && _targets != null)
         {
             foreach (PhysicsTarget entry in _targets)
@@ -247,11 +247,11 @@ public class ScriptPhysicsManager : MonoBehaviour
                 SetColliders(cols, entry.collidersEnabled);
             }
         }
+#endif
 
         if (Application.isPlaying && _cacheReady)
             ApplyAll();
     }
-#endif
 
     // ───────────────────────── OnGUI Menu ─────────────────────────
 
