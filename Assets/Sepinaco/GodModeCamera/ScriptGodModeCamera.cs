@@ -115,6 +115,9 @@ public class ScriptGodModeCamera : MonoBehaviour
     [Tooltip("Botón del ratón para activar la rotación (0 = izq, 1 = der, 2 = medio).")]
     public int lookMouseButton = 0;
 
+    [Tooltip("Ocultar el cursor del ratón mientras God Mode está activo.")]
+    public bool hideCursor = true;
+
     // ═══════════════════════════════════════════════════════════
     //  Estado interno
     // ═══════════════════════════════════════════════════════════
@@ -207,6 +210,9 @@ public class ScriptGodModeCamera : MonoBehaviour
 
         _savedCursorLock = Cursor.lockState;
         _savedCursorVisible = Cursor.visible;
+
+        Cursor.visible = !hideCursor;
+        Cursor.lockState = hideCursor ? CursorLockMode.Confined : CursorLockMode.None;
 
         DisableControlScripts();
 
@@ -312,15 +318,15 @@ public class ScriptGodModeCamera : MonoBehaviour
 
     private void HandleLook()
     {
+        Cursor.visible = !hideCursor;
+
         if (!Input.GetMouseButton(lookMouseButton))
         {
-            Cursor.lockState = CursorLockMode.None;
-            Cursor.visible = true;
+            Cursor.lockState = hideCursor ? CursorLockMode.Confined : CursorLockMode.None;
             return;
         }
 
         Cursor.lockState = CursorLockMode.Locked;
-        Cursor.visible = false;
 
         float mx = Input.GetAxis("Mouse X") * lookSensitivity;
         float my = Input.GetAxis("Mouse Y") * lookSensitivity;
