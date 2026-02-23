@@ -1,5 +1,5 @@
 # Actualización de texturas en gameobjects
-_Exported on 22/02/2026 at 0:10:04 CET from Cursor (2.5.20)_
+_Exported on 22/02/2026 at 0:35:51 CET from Cursor (2.5.20)_
 
 ---
 
