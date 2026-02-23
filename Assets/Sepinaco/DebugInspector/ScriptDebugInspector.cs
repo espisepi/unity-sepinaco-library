@@ -77,10 +77,10 @@ public class ScriptDebugInspector : MonoBehaviour
 
     [Header("Zoom de la UI")]
     [Tooltip("Tecla para aumentar el tamaño de las letras")]
-    public KeyCode zoomInKey = KeyCode.KeypadPlus;
+    public KeyCode zoomInKey = KeyCode.Alpha9;
 
     [Tooltip("Tecla para disminuir el tamaño de las letras")]
-    public KeyCode zoomOutKey = KeyCode.KeypadMinus;
+    public KeyCode zoomOutKey = KeyCode.Alpha8;
 
     [Header("Ráfaga de pulsaciones (Key Repeat)")]
     [Tooltip("Activa la repetición automática de pulsaciones al mantener presionada " +
