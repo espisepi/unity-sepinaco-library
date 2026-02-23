@@ -13,7 +13,8 @@ que ocupe todo el mapa sin fisicas para verla como si fuese un cielo desde la es
 
 Mostrarle a la ia el codigo de react de videopoints
 (pegar el proyecto en este workspace y no trackearlo con git)
-y decirle que me haga una replica del mismo efecto con un script que añada a un gameobject para crear un elemento visual shader mostrando el video que se esté ejecutando en el script ScriptVideoclipsManager (para ello que busque el componente video en la escena para que no dependa del script) y lo muestre con el efecto de los puntos que se realiza en los shaders de webgl. Hacer todos los atributos del shader modificables desde el editor.
+y decirle que me haga una replica del mismo efecto con un script que añada a un gameobject para crear un elemento visual shader mostrando el video que se esté ejecutando en el script ScriptVideoclipsManager (para ello que busque el componente video en la escena para que no dependa del script) y lo muestre con el efecto de los puntos que se realiza en los shaders de webgl. Hacer todos los atributos del shader modificables desde el editor y que funcionen en la build final sin el editor.
+Hacer que el shader lo tenga que añadir desde el editor para que funcione en la build similar a lo que hacemos en el script ScriptPostProcessingPixelPs1.
 
 ==========
 
