@@ -114,8 +114,9 @@ public class TriggerRestoreManager : MonoBehaviour
 
         if (_resetVelocity && rb != null)
         {
-            // unity updated: rb.linearVelocity = Vector3.zero;
-            rb.velocity = Vector3.zero;
+            // legacy code: (Unity 2022.3 and before)
+            //rb.velocity = Vector3.zero;
+            rb.linearVelocity = Vector3.zero;
             
             rb.angularVelocity = Vector3.zero;
         }
