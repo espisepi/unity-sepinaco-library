@@ -25,9 +25,19 @@ Añadir un script que se asocie a un gameobject para mostrar una vista ui en mob
 
 Añadir un script dentro de la carpeta sepinaco, que se asocie a un gameobject para que desactive todos los controles de la camara y del player en la escena y me añada un control en modo dios para poder navegar dentro de la escena como si lo hiciese en el editor de unity y así ir volando por el escenario en todas las direcciones. Quiero un atributo modificable desde el editor de unity para activar o desactivar el control de la camara en modo dios y cuando esté desactivado quiero que tengamos el control que teníamos previamente a activarlo. Estos atributoas también lo podremos modificar cuando añadamos el script creado al script ScriptDebugInspector para modificar esos atributos desde la ventana debug del script ScriptDebugInspector. Quiero que toda la funcionalidad definida funcione cuando haga la build y no solamente en el unity editor.
 
+(No usado este prompt al final)
+Quiero que en el script ScriptGodModeCamera.cs me añadas un atributo que me muestre una lista de todos los controles que hay en la escena, incluyendo el control modo dios del propio script. Y quiero que me añadas la funcionalidad de ir cambiando uno por uno entre los distintos controles de la escena cuando pulso la tecla que tengo configurado para ello que ahora mismo es la tecla alpha3.
+
+
+===============
+
+Añadir un script dentro de la carpeta sepinaco, que checkee todos los scripts de la escena durante un intervalo de tiempo (crear atributo modificable para modificar el intervalo de tiempo) y hasta un límite de tiempo (crear atributo modificable para modificar el limite de tiempo de búsqueda). Chequee y registre todos los controles que se usan, los añada a un array en los que puedo desactivarlos o activarlos en runtime y me permita agruparlos en varios grupos (puedo añadir y eliminar grupos) para activar o desactivarlos a la vez todos los que pertenezcan a ese grupo que he activado o desactivado y guardar y cargar toda esa configuración. Quiero que toda la funcionalidad definida funcione cuando haga la build y no solamente en el unity editor. Estos atributos también lo podremos modificar cuando añadamos el script creado al script ScriptDebugInspector para modificar esos atributos desde la ventana debug del script ScriptDebugInspector. 
+
 ===============
 
 Añadir un script dentro de la carpeta sepinaco, que se asocie a un gameobject para que pueda añadir un video almacenado en mi ordenador local y ese video reemplace al video del script ScriptVideoclipsManager para que reemplace las texturas de la escena por el del nuevo video con toda la funcionalidad que tengo actualmente.
+
+================
 
 Escribir el prompt para hacerlo por servidor web (mirar chatgpt)
 
