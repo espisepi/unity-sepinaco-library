@@ -4,6 +4,10 @@ using UnityEngine.Video;
 
 public class ScriptVideoclipsManager : MonoBehaviour
 {
+    [Header("Debug")]
+    [Tooltip("Fuerza una nueva iteración de renderers y reaplica las texturas de vídeo (solo si el reemplazo está activo). Modificable desde ScriptDebugInspector.")]
+    [SerializeField] private bool forceRefreshVideoTextures;
+
     [Header("Audio del vídeo")]
     [Tooltip("Mutea o desmutea el audio del vídeo. Modificable desde ScriptDebugInspector.")]
     [SerializeField] private bool muteAudio;
@@ -393,6 +397,15 @@ public class ScriptVideoclipsManager : MonoBehaviour
     {
         if (!Application.isPlaying || !hasVideoClips || videoPlayer == null) return;
         if (videoClips == null || videoClips.Length == 0) return;
+
+        if (forceRefreshVideoTextures)
+        {
+            if (useVideoTextures || texturesReplaced)
+                ReplaceSceneTextures();
+
+            // One-shot trigger para poder volver a lanzarlo desde DebugInspector.
+            forceRefreshVideoTextures = false;
+        }
 
         if (muteAudio != _lastAppliedMuteAudio)
         {
