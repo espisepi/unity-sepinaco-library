@@ -15,6 +15,14 @@ public class ScriptUvGlobalTiler : MonoBehaviour
         public Vector2 offset;
     }
 
+    [Header("Acciones desde inspectors")]
+    [Tooltip("Poner en True para aplicar UV desde ScriptDebugInspector. Se auto-resetea.")]
+    [SerializeField] private bool triggerApply = false;
+
+    [Tooltip("Poner en True para restaurar UV originales desde ScriptDebugInspector. Se auto-resetea.")]
+    [SerializeField] private bool triggerRestore = false;
+
+
     [Header("Aplicacion")]
     [Tooltip("Aplica el tiling automaticamente al iniciar la escena.")]
     [SerializeField] private bool applyOnStart = true;
@@ -42,13 +50,6 @@ public class ScriptUvGlobalTiler : MonoBehaviour
 
     [Tooltip("Forzar WrapMode.Repeat para que el tiling se vea en mosaico y no estirado por clamping.")]
     [SerializeField] private bool forceRepeatWrapMode = true;
-
-    [Header("Acciones desde inspectors")]
-    [Tooltip("Poner en True para aplicar UV desde ScriptDebugInspector. Se auto-resetea.")]
-    [SerializeField] private bool triggerApply = false;
-
-    [Tooltip("Poner en True para restaurar UV originales desde ScriptDebugInspector. Se auto-resetea.")]
-    [SerializeField] private bool triggerRestore = false;
 
     private readonly Dictionary<string, UvSnapshot> _originalUv = new Dictionary<string, UvSnapshot>();
 
