@@ -36,3 +36,28 @@ Añadir un script dentro de la carpeta sepinaco, que se asocie a un gameobject, 
 añade la posibilidad de poder modificar el puerto como atributo modificable en runtime desde el editor y fuera del editor en la build final
 
 me dice que no se encontró ningún videoplayer en la escena, seguramente sea porque el script se ejecutó antes del script del videoplayer. Haz que si no encuentra el videoplayer, vuelva a buscarlo cada cierto tiempo, ese cierto tiempo de espera es configurable desde un atributo. Crea otro atributo para activar y desactivar la búsqueda del videoplayer (cuando digo videoplayer, me refiero también al script videoclipsmanager y todos esos if que tengo en cuenta en el código)
+
+
+scruop conm snimsvuinrs anumaacyuiones
+
+Crear script para asignarselo a un gameobject con animaciones y ver sus animaciones y reproducirlas
+
+https://assetstore.unity.com/packages/tools/level-design/gspawn-level-designer-45021#reviews
+
+https://assetstore.unity.com/packages/templates/systems/classic-city-builder-kit-187814?srsltid=AfmBOopJEo37IajJT1vZFUWhElru3CSogGm1twgA2P92MOxiKCd1Yw-n#reviews
+
+https://assetstore.unity.com/packages/templates/systems/action-adventure-kit-217284#reviews
+
+https://assetstore.unity.com/packages/templates/systems/classic-city-builder-kit-187814#reviews
+
+https://assetstore.unity.com/packages/tools/terrain/mapmagic-2-bundle-178682#reviews
+
+
+Añadir un script dentro de la carpeta sepinaco, que se asocie a un gameobject, que me cree un editor de mapa con las mismas funcionalidades y controles que el editor de niveles de age of empire 2 o sim city, en el que previamente añado al script los gameobjects que puedo crear o eliminar de la escena y cuando activo el modo editor, los controles pasan a ser en modo editor y me puedo mover por la escena en modo editor y cuando desactivo el modo editor los controles vuelven a estar a como estaban previamente de activar el modo editor.
+
+
+
+======
+
+
+Comprar e incluir asset unity store para tener la funcionalidad de city builder like sim city
