@@ -6,7 +6,7 @@
 !.gitattributes
 
 # Keep Packages (needed to open the project correctly)
-!Packages/
+#!Packages/
 
 # Keep Assets folder structure, but ignore its contents initially
 !Assets/
