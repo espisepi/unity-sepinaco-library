@@ -16,6 +16,12 @@ Assets/*
 !Assets/Sepinaco/
 !Assets/Sepinaco.meta
 
+# Keep files fixed for tracking changes
+!TMP_TextSelector_B.cs
+!TMP_TextSelector_B.meta
+!TMP_TextSelector_B.cs.meta
+!TMP_TextSelector_B.cs.meta
+
 # ===== Standard Unity ignores (for safety) =====
 Library/
 Temp/
